@@ -1,0 +1,71 @@
+import cv2
+import serial
+import time
+import image_processing
+from const_variables import const
+
+
+def tx_data(ser, send_data):
+    send_data = int(send_data).to_bytes(1, 'big')
+    print(f'tx : {send_data}')
+    ser.write(send_data)
+
+
+def rx_data(ser):
+    if ser.inWaiting() > 0:
+        receive = ser.read()
+        ser.flush()
+        print(f'rx : {receive}')
+        return receive
+    else:
+        return None
+
+
+if __name__ == '__main__':
+    serial_port = serial.Serial('/dev/ttyS0', const.BPS, timeout=0.1)
+    serial_port.flush()  # serial cls
+
+    robot_state_controller = image_processing.RobotStateController()
+
+    while True:
+        if rx_data(serial_port) is not None:
+            break
+    tx_data(serial_port, const.SIGNAL_CHECK)
+    print("통신 시작\n")
+
+    while True:
+        try:
+            cap = cv2.VideoCapture(0)  # 카메라 켜기  # 카메라 캡쳐 (사진만 가져옴)
+            cap.set(3, const.WIDTH_SIZE)
+            cap.set(4, const.HEIGHT_SIZE)
+            cap.set(5, const.FPS)
+            break
+        except ConnectionError:
+            print('cannot load camera!')
+
+    frame = None
+    while cv2.waitKey(10) != 27:
+        while True:
+            serial_data = rx_data(serial_port)
+            if serial_data is not None:
+                serial_data = serial_data[0]
+                break
+
+        ret = False
+        start_time = time.time()
+        while ret is False:
+            if time.time() - start_time > 10:
+                print("can not read camera")
+                quit()
+            ret, frame = cap.read()
+
+        frame = cv2.GaussianBlur(frame, (3, 3), 0)
+        cv2.imshow('frame', frame)
+
+        print(robot_state_controller)
+        if serial_data == const.SIGNAL_IMAGE:
+            tx_data(serial_port, robot_state_controller.operation(frame))
+        elif serial_data == const.SIGNAL_STATE:
+            robot_state_controller.state_change()
+
+    cap.release()
