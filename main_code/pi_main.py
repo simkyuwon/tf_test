@@ -22,6 +22,17 @@ def rx_data(ser):
 
 
 if __name__ == '__main__':
+    while True:
+        try:
+            cap = cv2.VideoCapture(0)  # 카메라 켜기  # 카메라 캡쳐 (사진만 가져옴)
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, const.WIDTH_SIZE)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, const.HEIGHT_SIZE)
+            cap.set(cv2.CAP_PROP_FPS, const.FPS)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 0)
+            break
+        except ConnectionError:
+            print('cannot load camera!')
+
     serial_port = serial.Serial('/dev/ttyS0', const.BPS, timeout=0.1)
     serial_port.flush()  # serial cls
 
@@ -33,39 +44,27 @@ if __name__ == '__main__':
     tx_data(serial_port, const.SIGNAL_CHECK)
     print("통신 시작\n")
 
-    while True:
-        try:
-            cap = cv2.VideoCapture(0)  # 카메라 켜기  # 카메라 캡쳐 (사진만 가져옴)
-            cap.set(3, const.WIDTH_SIZE)
-            cap.set(4, const.HEIGHT_SIZE)
-            cap.set(5, const.FPS)
-            break
-        except ConnectionError:
-            print('cannot load camera!')
-
     frame = None
-    while cv2.waitKey(10) != 27:
-        while True:
-            serial_data = rx_data(serial_port)
-            if serial_data is not None:
-                serial_data = serial_data[0]
-                break
+    while True:
+        ret, frame = cap.read()
+        if ret is False:
+            continue
 
-        ret = False
-        start_time = time.time()
-        while ret is False:
-            if time.time() - start_time > 10:
-                print("can not read camera")
-                quit()
-            ret, frame = cap.read()
+        serial_data = rx_data(serial_port)
+        if serial_data is not None:
+            serial_data = serial_data[0]
+        else:
+            continue
 
         frame = cv2.GaussianBlur(frame, (3, 3), 0)
-        cv2.imshow('frame', frame)
+
+        # cv2.imshow('frame', frame)
+        if cv2.waitKey(10) == 27:
+            break
 
         print(robot_state_controller)
         if serial_data == const.SIGNAL_IMAGE:
             tx_data(serial_port, robot_state_controller.operation(frame))
         elif serial_data == const.SIGNAL_STATE:
             robot_state_controller.state_change()
-
     cap.release()

@@ -1,6 +1,8 @@
 from abc import *
 import line_tracing
 import direction_recognition
+import arrow_recognition
+from const_variables import const
 
 
 class RobotStateBase(metaclass=ABCMeta):
@@ -50,6 +52,38 @@ class FindCross(RobotStateBase):
 
     def operation(self, source_image):
         return self.line_tracing.select_corner_motion(self.line_tracing.detect_line(source_image))
+
+    def state_change(self):
+        return ArrowRecognition()
+
+
+class ArrowRecognition(RobotStateBase):
+    def __init__(self):
+        self.arrow_recognition = arrow_recognition.ArrowRecognition()
+
+    def __str__(self):
+        return "Arrow Recognition"
+
+    def operation(self, source_image):
+        return self.arrow_recognition.arrow_recognition(source_image)
+
+    def state_change(self):
+        return LineTracingToCorner()
+
+
+class LineTracingToCorner(RobotStateBase):
+    def __init__(self):
+        self.line_tracing = line_tracing.LineTracing()
+
+    def __str__(self):
+        return "LineTracing to Corner"
+
+    def operation(self, source_image):
+        line_list = self.line_tracing.detect_line(source_image)
+        if line_tracing.detect_corner(line_list) is not None:
+            return const.MOTION_LINE_STOP
+        else:
+            return self.line_tracing.select_line_motion(line_list)
 
     def state_change(self):
         pass
