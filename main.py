@@ -21,17 +21,15 @@ for i in range(4):
         max_prediction = -1
         for point in point_list[1:]:
             (h, w), label, score = point
-            if label != 2 and label != 3 and score > max_prediction:
+            if label == 1 and score > max_prediction:
                 max_prediction = score
                 keypoint = (w, h)
             if label == 0:
                 dst = cv2.circle(dst, (w, h), 3, (255, 0, 0), 2)
             elif label == 1:
                 dst = cv2.circle(dst, (w, h), 3, (0, 255, 0), 2)
-            elif label == 3:
+            elif label == 2:
                 dst = cv2.circle(dst, (w, h), 3, (0, 0, 255), 2)
-            elif label == 4:
-                dst = cv2.circle(dst, (w, h), 3, (0, 255, 255), 2)
 
         print(image_label)
         dst = cv2.circle(dst, keypoint, 8, (255, 255, 255), 4)

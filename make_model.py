@@ -39,7 +39,7 @@ def make_model():
         layers.MaxPool2D(),
         layers.Flatten(),
         layers.Dense(100, activation='relu'),
-        layers.Dense(5, activation='softmax')
+        layers.Dense(3, activation='softmax')
     ])
 
     model.compile(

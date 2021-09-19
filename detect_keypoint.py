@@ -45,10 +45,10 @@ class DetectKeypoint:
                 return
         else:
             if prediction_label == label or prediction < 0.4:  # NOT FLOOR
-                for h in range(3):
+                for h in range(2):
                     for w in range(3):
                         point_list = self.search(image_array, size - 1,
-                                                 (height + (unit_height / 3) * h, width + (unit_width / 3) * w), label)
+                                                 (height + (unit_height / 2) * h, width + (unit_width / 3) * w), label)
                         if point_list is not None:
                             ret_list = ret_list + point_list
                 return ret_list

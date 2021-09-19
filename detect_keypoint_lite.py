@@ -14,7 +14,7 @@ class DetectKeypoint:
             raise Exception("model not found")
         self.interpreter = tflite.Interpreter(model_path=model_path)
         self.interpreter.allocate_tensors()
-        
+
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
 
@@ -32,8 +32,8 @@ class DetectKeypoint:
             return
 
         resize_image = np.resize(image_array[:, int(height):int(height + unit_height),
-                                        int(width):int(width + unit_width)],
-                                        (1, 64, 88, 3))
+                                 int(width):int(width + unit_width)],
+                                 (1, 64, 88, 3))
         self.interpreter.set_tensor(self.input_details[0]['index'], resize_image)
         self.interpreter.invoke()
         prediction = self.interpreter.get_tensor(self.output_details[0]['index'])
