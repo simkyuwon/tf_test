@@ -38,7 +38,7 @@ class LineTracing:
         self.prev_motion = 0
 
     def find_main_line_index(self, line_list):
-        if len(line_list) > 0:
+        if len(line_list):
             line_array = np.asarray(line_list)[:, 4]
             line_array = abs(line_array - self.prev_angle)
             line_array = np.where(line_array >= np.pi / 2, abs(line_array - np.pi), line_array)
@@ -48,67 +48,73 @@ class LineTracing:
     def select_line_motion(self, line_list):
         ret_value = const.MOTION_LINE_MOVE_FRONT
         if len(line_list) == 0:  # 라인 미검출
-            ret_value = const.MOTION_LINE_LOST
+            if self.prev_motion == const.MOTION_MOVE_RIGHT:
+                ret_value = const.MOTION_MOVE_LEFT
+            elif self.prev_motion == const.MOTION_MOVE_LEFT:
+                ret_value = const.MOTION_MOVE_RIGHT
+            elif self.prev_motion == const.MOTION_LINE_TURN_RIGHT_SMALL:
+                if self.prev_x < self.img_width / 2:
+                    ret_value = const.MOTION_MOVE_LEFT
+                else:
+                    ret_value = const.MOTION_MOVE_RIGHT
+            elif self.prev_motion == const.MOTION_LINE_TURN_LEFT_SMALL:
+                if self.prev_x < self.img_width / 2:
+                    ret_value = const.MOTION_MOVE_LEFT
+                else:
+                    ret_value = const.MOTION_MOVE_RIGHT
+            elif self.prev_motion == const.MOTION_LINE_MOVE_FRONT:
+                ret_value = const.MOTION_LINE_LOST
         else:
             line_index = self.find_main_line_index(line_list)
             x_start, y_start, x_end, y_end, angle, x_pos = line_list[line_index]
-            if x_pos < self.img_width / 3:
-                ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x_pos > self.img_width * 2 / 3:
-                ret_value = const.MOTION_LINE_MOVE_RIGHT
-            elif -np.pi / 3 <= angle <= 0:
+            if -np.pi / 3 <= angle <= 0:
                 ret_value = const.MOTION_LINE_TURN_RIGHT_SMALL
             elif 0 <= angle <= np.pi / 3:
                 ret_value = const.MOTION_LINE_TURN_LEFT_SMALL
+            elif x_pos < self.img_width / 3:
+                ret_value = const.MOTION_LINE_MOVE_LEFT
+            elif x_pos > self.img_width * 2 / 3:
+                ret_value = const.MOTION_LINE_MOVE_RIGHT
             self.prev_angle, self.prev_x = angle, x_pos
         self.prev_motion = ret_value
         return ret_value
 
     def select_corner_motion(self, line_list):
         ret_value = const.MOTION_LINE_STOP
-        if len(line_list) == 0:
-            ret_value = const.MOTION_LINE_LOST
+        corner_point = detect_corner(line_list)
+        if not corner_point:
+            ret_value = self.select_line_motion(line_list)
         else:
-            # line_index = self.find_main_line_index(line_list)
-            # x_start, y_start, x_end, y_end, angle, x_pos = line_list[line_index]
-            # if -np.pi / 3 <= angle <= 0:
-            #     ret_value = const.MOTION_LINE_TURN_RIGHT_SMALL
-            # elif 0 <= angle <= np.pi / 3:
-            #     ret_value = const.MOTION_LINE_TURN_LEFT_SMALL
-            # else:
-            corner_point = detect_corner(line_list)
-            if corner_point is None:
-                ret_value = const.MOTION_LINE_LOST
-            else:
-                x, y = corner_point
-                if x < self.img_width / 4:
-                    ret_value = const.MOTION_LINE_MOVE_LEFT
-                elif x > self.img_width * 3 / 4:
-                    ret_value = const.MOTION_LINE_MOVE_RIGHT
-                elif y < self.img_height / 4:
-                    ret_value = const.MOTION_LINE_MOVE_FRONT
+            x, y = corner_point
+            if x < self.img_width / 4:
+                ret_value = const.MOTION_LINE_MOVE_LEFT
+            elif x > self.img_width * 3 / 4:
+                ret_value = const.MOTION_LINE_MOVE_RIGHT
+            elif y < self.img_height / 4:
+                ret_value = const.MOTION_LINE_MOVE_FRONT
         return ret_value
 
     def merge_line(self, line_list):
         ret_list = []
-
-        for index1, line1 in enumerate(line_list):
-            x1_start, y1_start, x1_end, y1_end, angle1, __ = line1
-            for index2, line2 in enumerate(line_list[index1 + 1:], index1 + 1):
+        line_list.sort()
+        while len(line_list):
+            x1_start, y1_start, x1_end, y1_end, angle1, __ = line_list[0]
+            merge_list = [0]
+            for index2, line2 in enumerate(line_list[1:], 1):
                 x2_start, y2_start, x2_end, y2_end, angle2, __ = line2
                 if abs(angle1 - angle2) < np.pi / 6:
                     if np.sum(np.square(np.array((x1_end, y1_end)) - np.array((x2_start, y2_start)))) < 500:
                         x1_end, y1_end = x2_end, y2_end
-                        line_list.pop(index2)
-                    elif np.sum(np.square(np.array((x1_start, y1_start)) - np.array((x2_end, y2_end)))) < 500:
-                        x1_start, y1_start = x2_start, y2_start
-                        line_list.pop(index2)
-            new_angle = calculate_angle(x1_end - x1_start, y1_end - y1_start)
-            if new_angle == 0:
+                        angle1 = calculate_angle(x1_end - x1_start, y1_end - y1_start)
+                        merge_list.append(index2)
+            if angle1 == 0:
                 new_x_pos = np.inf
             else:
-                new_x_pos = (self.img_height - y1_start) / np.tan(new_angle) + x1_start
-            ret_list.append([x1_start, y1_start, x1_end, y1_end, new_angle, new_x_pos])
+                new_x_pos = (self.img_height - y1_start) / np.tan(angle1) + x1_start
+            ret_list.append([x1_start, y1_start, x1_end, y1_end, angle1, new_x_pos])
+            merge_list.reverse()
+            for index in merge_list:
+                del line_list[index]
         return ret_list
 
     def detect_line(self, img_src):

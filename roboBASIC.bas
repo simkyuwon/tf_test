@@ -7,6 +7,7 @@ CONST cSIGNAL_IMAGE = &H41
 CONST cSIGNAL_STATE = &H42
 
 CONST cMOTION_LINE_MOVE_FRONT = &H80
+CONST cMOTION_LINE_MOVE_BACK = &H81
 CONST cMOTION_LINE_MOVE_LEFT = &H82
 CONST cMOTION_LINE_MOVE_RIGHT = &H83
 CONST cMOTION_LINE_TURN_LEFT_SMALL = &H84
@@ -149,6 +150,12 @@ PostureHeadLeft10:
 PostureHeadRight10:
     SPEED cHEAD_SPEED
     SERVO 11, 110
+    DELAY 500
+    RETURN
+
+PostureHeadTurn:
+    SPEED cHEAD_SPEED
+    SERVO 11, head_angle
     DELAY 500
     RETURN
 
@@ -400,14 +407,17 @@ StateDirectionRecognition:
     GOSUB PostureHeadDown
     GOSUB PostureHeadLeft10
 
-    ETX 4800, cSIGNAL_IMAGE
-    GOSUB UartRx
-	
-    IF rx_data = cMOTION_DIRECTION_UNKNOWN OR rx_data = cMOTION_DIRECTION_DOOR THEN
-        GOSUB PostureHeadRight10
+	FOR i = 0 TO 4
+	    head_angle = 85 + i * 10
+	    GOSUB PostureHeadTurn
         ETX 4800, cSIGNAL_IMAGE
         GOSUB UartRx
-    ENDIF
+	NEXT i
+    'IF rx_data = cMOTION_DIRECTION_UNKNOWN OR rx_data = cMOTION_DIRECTION_DOOR THEN
+    '    GOSUB PostureHeadRight10
+    '    ETX 4800, cSIGNAL_IMAGE
+    '    GOSUB UartRx
+    'ENDIF
 
     GOSUB MotorArmMode3
     SPEED 15
@@ -498,6 +508,7 @@ StateFindCross:
         walking_count = 1
         GOSUB MotionTurnRight
     ELSEIF rx_data = cMOTION_LINE_LOST THEN
+        'GOTO next state'
     ENDIF
 
     GOTO StateFindCross

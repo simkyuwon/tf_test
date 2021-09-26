@@ -18,12 +18,21 @@ class RobotStateBase(metaclass=ABCMeta):
 class DirectionRecognition(RobotStateBase):
     def __init__(self):
         self.tf_model = direction_recognition.DirectionRecognition()
+        self.predict_count = 0
+        self.predict_value = (0, 0)
 
     def __str__(self):
         return "Direction Recognition"
 
     def operation(self, source_image):
-        return self.tf_model.predict(source_image)
+        predict_label, predict_accuracy = self.tf_model.predict(source_image)
+        if 1 <= predict_label <= 4 and predict_accuracy > self.predict_value[1]:
+            self.predict_value = predict_label, predict_accuracy
+        self.predict_count += 1
+        if self.predict_count < 4:
+            return const.MOTION_DIRECTION_UNKNOWN
+        else:
+            return const.MOTION_DIRECTION_UNKNOWN + self.predict_value[0]
 
     def state_change(self):
         return LineTracingToDoor()
@@ -79,11 +88,15 @@ class LineTracingToCorner(RobotStateBase):
         return "LineTracing to Corner"
 
     def operation(self, source_image):
-        line_list = self.line_tracing.detect_line(source_image)
-        if line_tracing.detect_corner(line_list) is not None:
-            return const.MOTION_LINE_STOP
-        else:
-            return self.line_tracing.select_line_motion(line_list)
+        return self.line_tracing.select_corner_motion(self.line_tracing.detect_line(source_image))
+        # line_list = self.line_tracing.detect_line(source_image)
+        # if line_tracing.detect_corner(line_list) is not None:
+        #     return const.MOTION_LINE_STOP
+        # else:
+        #     ret_value = self.line_tracing.select_line_motion(line_list)
+        #     if ret_value == const.MOTION_LINE_LOST:
+        #         ret_value = const.MOTION_MOVE_BACK
+        #     return ret_value
 
     def state_change(self):
         pass
