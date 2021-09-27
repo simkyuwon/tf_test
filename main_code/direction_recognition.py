@@ -27,4 +27,4 @@ class DirectionRecognition:
         prediction = self.interpreter.get_tensor(self.output_details[0]['index'])
         prediction_label = np.argmax(prediction)
 
-        return prediction_label, prediction[prediction_label]
+        return prediction_label, prediction[0][prediction_label]

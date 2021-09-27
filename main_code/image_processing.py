@@ -2,6 +2,7 @@ from abc import *
 import line_tracing
 import direction_recognition
 import arrow_recognition
+import room_recognition
 from const_variables import const
 
 
@@ -89,14 +90,20 @@ class LineTracingToCorner(RobotStateBase):
 
     def operation(self, source_image):
         return self.line_tracing.select_corner_motion(self.line_tracing.detect_line(source_image))
-        # line_list = self.line_tracing.detect_line(source_image)
-        # if line_tracing.detect_corner(line_list) is not None:
-        #     return const.MOTION_LINE_STOP
-        # else:
-        #     ret_value = self.line_tracing.select_line_motion(line_list)
-        #     if ret_value == const.MOTION_LINE_LOST:
-        #         ret_value = const.MOTION_MOVE_BACK
-        #     return ret_value
+
+    def state_change(self):
+        return RoomRecognition()
+
+
+class RoomRecognition(RobotStateBase):
+    def __init__(self):
+        self.room_recognition = room_recognition.RoomRecognition()
+
+    def __str__(self):
+        return "Room Recognition"
+
+    def operation(self, source_image):
+        pass
 
     def state_change(self):
         pass

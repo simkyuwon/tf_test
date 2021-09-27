@@ -42,38 +42,39 @@ class LineTracing:
             line_array = np.asarray(line_list)[:, 4]
             line_array = abs(line_array - self.prev_angle)
             line_array = np.where(line_array >= np.pi / 2, abs(line_array - np.pi), line_array)
-            return np.argmin(line_array)
+            if np.min(line_array) < np.pi / 4:
+                return np.argmin(line_array)
         return None
 
     def select_line_motion(self, line_list):
         ret_value = const.MOTION_LINE_MOVE_FRONT
-        if len(line_list) == 0:  # 라인 미검출
-            if self.prev_motion == const.MOTION_MOVE_RIGHT:
-                ret_value = const.MOTION_MOVE_LEFT
-            elif self.prev_motion == const.MOTION_MOVE_LEFT:
-                ret_value = const.MOTION_MOVE_RIGHT
+        line_index = self.find_main_line_index(line_list)
+        if line_index is None:  # 라인 미검출
+            if self.prev_motion == const.MOTION_LINE_MOVE_RIGHT:
+                ret_value = const.MOTION_LINE_MOVE_LEFT
+            elif self.prev_motion == const.MOTION_LINE_MOVE_LEFT:
+                ret_value = const.MOTION_LINE_MOVE_RIGHT
             elif self.prev_motion == const.MOTION_LINE_TURN_RIGHT_SMALL:
                 if self.prev_x < self.img_width / 2:
-                    ret_value = const.MOTION_MOVE_LEFT
+                    ret_value = const.MOTION_LINE_MOVE_LEFT
                 else:
-                    ret_value = const.MOTION_MOVE_RIGHT
+                    ret_value = const.MOTION_LINE_MOVE_RIGHT
             elif self.prev_motion == const.MOTION_LINE_TURN_LEFT_SMALL:
                 if self.prev_x < self.img_width / 2:
-                    ret_value = const.MOTION_MOVE_LEFT
+                    ret_value = const.MOTION_LINE_MOVE_LEFT
                 else:
-                    ret_value = const.MOTION_MOVE_RIGHT
+                    ret_value = const.MOTION_LINE_MOVE_RIGHT
             elif self.prev_motion == const.MOTION_LINE_MOVE_FRONT:
                 ret_value = const.MOTION_LINE_LOST
         else:
-            line_index = self.find_main_line_index(line_list)
             x_start, y_start, x_end, y_end, angle, x_pos = line_list[line_index]
             if -np.pi / 3 <= angle <= 0:
                 ret_value = const.MOTION_LINE_TURN_RIGHT_SMALL
             elif 0 <= angle <= np.pi / 3:
                 ret_value = const.MOTION_LINE_TURN_LEFT_SMALL
-            elif x_pos < self.img_width / 3:
+            elif x_pos < self.img_width * 2 / 5:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x_pos > self.img_width * 2 / 3:
+            elif x_pos > self.img_width * 4 / 5:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
             self.prev_angle, self.prev_x = angle, x_pos
         self.prev_motion = ret_value
@@ -86,11 +87,11 @@ class LineTracing:
             ret_value = self.select_line_motion(line_list)
         else:
             x, y = corner_point
-            if x < self.img_width / 4:
+            if x < self.img_width * 3 / 8:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x > self.img_width * 3 / 4:
+            elif x > self.img_width * 5 / 8:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
-            elif y < self.img_height / 4:
+            elif y < self.img_height / 3:
                 ret_value = const.MOTION_LINE_MOVE_FRONT
         return ret_value
 
@@ -143,7 +144,7 @@ class LineTracing:
         label_max = np.max(img_labeling)
         for label in range(1, label_max + 1):
             pixel_list = np.argwhere(img_labeling == label)
-            if len(pixel_list) > 200:
+            if len(pixel_list) > 300:
                 pixel_list = np.asarray(pixel_list, dtype=np.float64)
                 x_array = np.reshape(pixel_list[:, 1], -1)
                 y_array = np.reshape(pixel_list[:, 0], -1)
