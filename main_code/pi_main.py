@@ -1,6 +1,6 @@
 import cv2
 import serial
-import time
+import capture
 import image_processing
 from const_variables import const
 
@@ -22,6 +22,7 @@ def rx_data(ser):
 
 
 if __name__ == '__main__':
+    ftp = capture.FtpClient(ip_address="192.168.0.3", user="simkyuwon", passwd="mil18-76061632")
     while True:
         try:
             cap = cv2.VideoCapture(0)  # 카메라 켜기  # 카메라 캡쳐 (사진만 가져옴)
@@ -65,6 +66,7 @@ if __name__ == '__main__':
         print(robot_state_controller)
         if serial_data == const.SIGNAL_IMAGE:
             tx_data(serial_port, robot_state_controller.operation(frame))
+            ftp.store_image(frame)
         elif serial_data == const.SIGNAL_STATE:
             robot_state_controller.state_change()
     cap.release()

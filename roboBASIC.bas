@@ -30,7 +30,7 @@ CONST cMOTION_ARROW_LEFT = &HA1
 CONST cMOTION_ARROW_RIGHT = &HA2
 '********** protocol value end **********'
 
-DIM i AS INTEGER
+DIM i AS BYTE
 DIM rx_data AS BYTE
 DIM ir_data AS INTEGER
 DIM walking_speed1 AS BYTE
@@ -138,18 +138,6 @@ PostureDefault:
 PostureHeadCenter:
     SPEED cHEAD_SPEED
     SERVO 11, 100
-    DELAY 500
-    RETURN
-
-PostureHeadLeft10:
-    SPEED cHEAD_SPEED
-    SERVO 11, 90
-    DELAY 500
-    RETURN
-
-PostureHeadRight10:
-    SPEED cHEAD_SPEED
-    SERVO 11, 110
     DELAY 500
     RETURN
 
@@ -405,19 +393,13 @@ UartConnectWait:
 StateDirectionRecognition:
     head_angle = 75
     GOSUB PostureHeadDown
-    GOSUB PostureHeadLeft10
 
-	FOR i = 0 TO 4
-	    head_angle = 85 + i * 10
+	FOR i = 0 TO 3
+	    head_angle = i * 12 + 82
 	    GOSUB PostureHeadTurn
         ETX 4800, cSIGNAL_IMAGE
         GOSUB UartRx
 	NEXT i
-    'IF rx_data = cMOTION_DIRECTION_UNKNOWN OR rx_data = cMOTION_DIRECTION_DOOR THEN
-    '    GOSUB PostureHeadRight10
-    '    ETX 4800, cSIGNAL_IMAGE
-    '    GOSUB UartRx
-    'ENDIF
 
     GOSUB MotorArmMode3
     SPEED 15
@@ -466,10 +448,10 @@ StateLinetracingToDoor:
         walking_count = 1
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
-        walking_count = 2
+        walking_count = 1
         GOSUB MotionWalkingLeft
     ELSEIF rx_data = cMOTION_LINE_MOVE_RIGHT THEN
-        walking_count = 2
+        walking_count = 1
         GOSUB MotionWalkingRight
     ELSEIF rx_data = cMOTION_LINE_TURN_LEFT_SMALL THEN
         walking_count = 1
@@ -488,10 +470,9 @@ StateFindCross:
 
     IF rx_data = cMOTION_LINE_STOP THEN
         ETX 4800, cSIGNAL_STATE
-        head_angle = 110
-        GOSUB PostureHeadDown
+	    head_angle = 110
+	    GOSUB PostureHeadDown
         GOTO StateArrowRecognition
-        DELAY 200
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
         walking_count = 1
         GOSUB MotionWalkingFront
@@ -517,20 +498,24 @@ StateArrowRecognition:
     ETX 4800, cSIGNAL_IMAGE
     GOSUB UartRx
 
-    walking_count = 3
-    GOSUB MotionWalkingFront
-
+	walking_count = 2
+	GOSUB MotionWalkingFront
+    
     IF rx_data = cMOTION_ARROW_UNKNOWN THEN
     ELSEIF rx_data = cMOTION_ARROW_LEFT THEN
-        walking_count = 5
+        walking_count = 4
         GOSUB MotionTurnLeft
     ELSEIF rx_data = cMOTION_ARROW_RIGHT THEN
-        walking_count = 5
+        walking_count = 4
         GOSUB MotionTurnRight
     ENDIF
 
     head_angle = 30
     GOSUB PostureHeadDown
+    
+    walking_count = 1
+    GOSUB MotionWalkingFront
+    
     ETX 4800, cSIGNAL_STATE
     GOTO StateLinetracingToCorner
 
@@ -539,11 +524,15 @@ StateLinetracingToCorner:
     GOSUB UartRx
 
     IF rx_data = cMOTION_LINE_STOP THEN
+	    head_angle = 100
+	    GOSUB PostureHeadDown
+        walking_count = 2
+        GOSUB MotionWalkingFront
         MUSIC "CFCFCF"
         DELAY 1000
         GOTO Main
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
-        walking_count = 2
+        walking_count = 1
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
         walking_count = 2
