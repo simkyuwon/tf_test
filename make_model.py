@@ -33,28 +33,10 @@ def make_model():
         seed=random.randrange(1, 1000)
     )
 
-    # train_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    #     data_dir,
-    #     validation_split=0.2,
-    #     batch_size=64,
-    #     subset="training",
-    #     color_mode='grayscale',
-    #     seed=random.randrange(1, 100000),
-    #     shuffle=10000,
-    #     image_size=(240, 320))
-
-    # val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-    #     data_dir,
-    #     validation_split=0.2,
-    #     batch_size=64,
-    #     subset="validation",
-    #     color_mode='grayscale',
-    #     seed=random.randrange(1, 100000),
-    #     image_size=(240, 320))
-
     model = tf.keras.Sequential([
         layers.Resizing(240, 320),
         layers.Rescaling(1. / 255),
+        layers.Lambda(lambda x: 1 - x),
         layers.Conv2D(30, (11, 11), activation='relu'),
         layers.MaxPool2D(),
         layers.Conv2D(30, (9, 9), activation='relu'),
