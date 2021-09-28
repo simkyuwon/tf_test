@@ -18,45 +18,53 @@ def save_tflite_model():
 
 
 def make_model(save_tflite=False, save_log=False):
-    train_ds = tf.keras.preprocessing.image_dataset_from_directory(
-        data_dir,
-        validation_split=0.2,
-        batch_size=64,
-        color_mode="grayscale",
-        subset="training",
-        seed=random.randrange(1, 100000),
-        shuffle=10000,
-        image_size=(240, 320))
+    train_data_generator = tf.keras.preprocessing.image.ImageDataGenerator(
+        rotation_range=10,
+        brightness_range=[0.8, 1.0],
+        shear_range=5,
+        fill_mode='constant',
+        cval=0
+    )
 
-    val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-        data_dir,
-        validation_split=0.2,
+    validation_data_generator = tf.keras.preprocessing.image.ImageDataGenerator()
+
+    train_ds = train_data_generator.flow_from_directory(
+        f'{data_dir}/TRAIN',
+        target_size=(240, 320),
         batch_size=64,
-        color_mode="grayscale",
-        subset="validation",
-        seed=random.randrange(1, 100000),
-        image_size=(240, 320))
+        color_mode='grayscale',
+        seed=random.randrange(1, 1000)
+    )
+
+    val_ds = validation_data_generator.flow_from_directory(
+        f'{data_dir}/VALIDATION',
+        target_size=(240, 320),
+        batch_size=64,
+        color_mode='grayscale',
+        seed=random.randrange(1, 1000)
+    )
 
     model = tf.keras.Sequential([
-        layers.Rescaling(1./255),
-        layers.Conv2D(16, (5, 5), activation='relu'),
+        layers.Resizing(240, 320),
+        layers.Rescaling(1. / 255),
+        layers.Conv2D(30, (11, 11), activation='relu'),
         layers.MaxPool2D(),
-        layers.Conv2D(16, (5, 5), activation='relu'),
+        layers.Conv2D(30, (9, 9), activation='relu'),
         layers.MaxPool2D(),
-        layers.Conv2D(32, (5, 5), activation='relu'),
+        layers.Conv2D(40, (7, 7), activation='relu'),
         layers.MaxPool2D(),
-        layers.Conv2D(32, (3, 3), activation='relu'),
+        layers.Conv2D(40, (5, 5), activation='relu'),
         layers.MaxPool2D(),
-        layers.Conv2D(64, (3, 3), activation='relu'),
+        layers.Conv2D(50, (3, 3), activation='relu'),
         layers.MaxPool2D(),
         layers.Flatten(),
-        layers.Dense(256, activation='relu'),
-        layers.Dense(5, activation='softmax')
+        layers.Dense(120, activation='relu'),
+        layers.Dense(6, activation='softmax')
     ])
 
     model.compile(
         optimizer="adam",
-        loss='sparse_categorical_crossentropy',
+        loss=tf.keras.losses.CategoricalCrossentropy(),
         metrics=["accuracy"]
     )
 
@@ -69,8 +77,8 @@ def make_model(save_tflite=False, save_log=False):
     model.fit(
         train_ds,
         validation_data=val_ds,
-        epochs=5,
-        callbacks=callback_func
+        epochs=20,
+        # callbacks=[tensorboard_callback]
     )
 
     model.summary()
