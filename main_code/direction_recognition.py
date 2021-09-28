@@ -24,7 +24,4 @@ class DirectionRecognition:
 
         self.interpreter.set_tensor(self.input_details[0]['index'], image_array)
         self.interpreter.invoke()
-        prediction = self.interpreter.get_tensor(self.output_details[0]['index'])
-        prediction_label = np.argmax(prediction)
-
-        return prediction_label, prediction[0][prediction_label]
+        return self.interpreter.get_tensor(self.output_details[0]['index'])[0]

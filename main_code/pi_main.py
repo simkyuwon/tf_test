@@ -29,7 +29,6 @@ if __name__ == '__main__':
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, const.WIDTH_SIZE)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, const.HEIGHT_SIZE)
             cap.set(cv2.CAP_PROP_FPS, const.FPS)
-            cap.set(cv2.CAP_PROP_BUFFERSIZE, 0)
             break
         except ConnectionError:
             print('cannot load camera!')
@@ -59,13 +58,13 @@ if __name__ == '__main__':
 
         frame = cv2.GaussianBlur(frame, (3, 3), 0)
 
-        # cv2.imshow('frame', frame)
         if cv2.waitKey(10) == 27:
             break
 
         print(robot_state_controller)
         if serial_data == const.SIGNAL_IMAGE:
             tx_data(serial_port, robot_state_controller.operation(frame))
+            # cv2.imshow('frame', frame)
             ftp.store_image(frame)
         elif serial_data == const.SIGNAL_STATE:
             robot_state_controller.state_change()

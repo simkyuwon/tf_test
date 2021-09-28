@@ -15,7 +15,7 @@ const.BPS = 4800
 
 const.HEIGHT_SIZE = 240
 const.WIDTH_SIZE = 320
-const.FPS = 30
+const.FPS = 20
 
 const.SIGNAL_CHECK = 0x40
 const.SIGNAL_IMAGE = 0x41
