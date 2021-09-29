@@ -17,7 +17,6 @@ class DirectionRecognition:
 
     def predict(self, source_image):
         image_array = cv2.cvtColor(source_image, cv2.COLOR_BGR2GRAY)
-        image_array = cv2.bitwise_not(image_array)
         image_array = np.asarray(image_array, dtype=np.float32)
         image_array = np.expand_dims(image_array, axis=2)
         image_array = np.expand_dims(image_array, axis=0)

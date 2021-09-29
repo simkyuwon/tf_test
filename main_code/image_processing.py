@@ -1,7 +1,5 @@
 from abc import *
-
 import numpy as np
-
 import line_tracing
 import direction_recognition
 import arrow_recognition
@@ -41,7 +39,7 @@ class DirectionRecognition(RobotStateBase):
             label = np.argmax(self.predict_value[1:5])
             self.predict_count = 0
             self.predict_value = np.zeros(6)
-            return const.MOTION_DIRECTION_EAST
+            return const.MOTION_DIRECTION_EAST + label
 
     def state_change(self):
         return self.next_state

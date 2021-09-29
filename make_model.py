@@ -47,6 +47,7 @@ def make_model(save_tflite=False, save_log=False):
     model = tf.keras.Sequential([
         layers.Resizing(240, 320),
         layers.Rescaling(1. / 255),
+        layers.Lambda(lambda x: 1 - x),
         layers.Conv2D(30, (11, 11), activation='relu'),
         layers.MaxPool2D(),
         layers.Conv2D(30, (9, 9), activation='relu'),
