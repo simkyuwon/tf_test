@@ -1,4 +1,5 @@
 from abc import *
+import numpy as np
 import line_tracing
 import direction_recognition
 import arrow_recognition
@@ -20,20 +21,21 @@ class DirectionRecognition(RobotStateBase):
     def __init__(self):
         self.tf_model = direction_recognition.DirectionRecognition()
         self.predict_count = 0
-        self.predict_value = (0, 0)
+        self.predict_value = np.zeros(6)
 
     def __str__(self):
         return "Direction Recognition"
 
     def operation(self, source_image):
-        predict_label, predict_accuracy = self.tf_model.predict(source_image)
-        if 1 <= predict_label <= 4 and predict_accuracy > self.predict_value[1]:
-            self.predict_value = predict_label, predict_accuracy
+        self.predict_value += self.tf_model.predict(source_image)
         self.predict_count += 1
         if self.predict_count < 4:
             return const.MOTION_DIRECTION_UNKNOWN
         else:
-            return const.MOTION_DIRECTION_UNKNOWN + self.predict_value[0]
+            label = np.argmax(self.predict_value[1:5])
+            self.predict_count = 0
+            self.predict_value = np.zeros(6)
+            return const.MOTION_DIRECTION_EAST + label
 
     def state_change(self):
         return LineTracingToDoor()
