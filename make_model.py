@@ -3,82 +3,149 @@ from tensorflow.keras import layers
 import pathlib
 import random
 
-data_dir = pathlib.Path("./data/TRAIN_DIR")
+direction_data_dir = pathlib.Path("./data/DIRECTION_DIR")
+section_data_dir = pathlib.Path("./data/SECTION_DIR")
 
 
-def make_model():
-    train_data_generator = tf.keras.preprocessing.image.ImageDataGenerator(
-        rotation_range=10,
-        brightness_range=[0.8, 1.0],
-        shear_range=5,
-        fill_mode='constant',
-        cval=0
-    )
+def make_model(direction=True, section=True):
+    if direction:
+        train_data_generator = tf.keras.preprocessing.image.ImageDataGenerator(
+            rotation_range=10,
+            brightness_range=[0.8, 1.0],
+            shear_range=5,
+            fill_mode='constant',
+            cval=0
+        )
 
-    validation_data_generator = tf.keras.preprocessing.image.ImageDataGenerator()
+        validation_data_generator = tf.keras.preprocessing.image.ImageDataGenerator()
 
-    train_ds = train_data_generator.flow_from_directory(
-        f'{data_dir}/TRAIN',
-        target_size=(240, 320),
-        batch_size=64,
-        color_mode='grayscale',
-        seed=random.randrange(1, 1000)
-    )
+        train_ds = train_data_generator.flow_from_directory(
+            f'{direction_data_dir}/TRAIN',
+            target_size=(240, 320),
+            batch_size=64,
+            color_mode='grayscale',
+            seed=random.randrange(1, 1000)
+        )
 
-    val_ds = validation_data_generator.flow_from_directory(
-        f'{data_dir}/VALIDATION',
-        target_size=(240, 320),
-        batch_size=64,
-        color_mode='grayscale',
-        seed=random.randrange(1, 1000)
-    )
+        val_ds = validation_data_generator.flow_from_directory(
+            f'{direction_data_dir}/VALIDATION',
+            target_size=(240, 320),
+            batch_size=64,
+            color_mode='grayscale',
+            seed=random.randrange(1, 1000)
+        )
 
-    model = tf.keras.Sequential([
-        layers.Resizing(240, 320),
-        layers.Rescaling(1. / 255),
-        layers.Lambda(lambda x: 1 - x),
-        layers.Conv2D(30, (11, 11), activation='relu'),
-        layers.MaxPool2D(),
-        layers.Conv2D(30, (9, 9), activation='relu'),
-        layers.MaxPool2D(),
-        layers.Conv2D(40, (7, 7), activation='relu'),
-        layers.MaxPool2D(),
-        layers.Conv2D(40, (5, 5), activation='relu'),
-        layers.MaxPool2D(),
-        layers.Conv2D(50, (3, 3), activation='relu'),
-        layers.MaxPool2D(),
-        layers.Flatten(),
-        layers.Dense(120, activation='relu'),
-        layers.Dense(6, activation='softmax')
-    ])
+        model = tf.keras.Sequential([
+            layers.Resizing(240, 320),
+            layers.Rescaling(1. / 255),
+            layers.Lambda(lambda x: 1 - x),
+            layers.Conv2D(30, (11, 11), activation='relu'),
+            layers.MaxPool2D(),
+            layers.Conv2D(30, (9, 9), activation='relu'),
+            layers.MaxPool2D(),
+            layers.Conv2D(40, (7, 7), activation='relu'),
+            layers.MaxPool2D(),
+            layers.Conv2D(40, (5, 5), activation='relu'),
+            layers.MaxPool2D(),
+            layers.Conv2D(50, (3, 3), activation='relu'),
+            layers.MaxPool2D(),
+            layers.Flatten(),
+            layers.Dense(120, activation='relu'),
+            layers.Dense(6, activation='softmax')
+        ])
 
-    model.compile(
-        optimizer="adam",
-        loss=tf.keras.losses.CategoricalCrossentropy(),
-        metrics=["accuracy"]
-    )
+        model.compile(
+            optimizer="adam",
+            loss=tf.keras.losses.CategoricalCrossentropy(),
+            metrics=["accuracy"]
+        )
 
-    # log_dir = f"logs/{datetime.datetime.now().strftime('%Y%m%d-%H-%M-%S.%f')}"
-    # tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+        model.fit(
+            train_ds,
+            validation_data=val_ds,
+            epochs=20,
+        )
 
-    model.fit(
-        train_ds,
-        validation_data=val_ds,
-        epochs=20,
-        # callbacks=[tensorboard_callback]
-    )
+        model.summary()
 
-    model.summary()
+        model.save('saved_model/direction_model')
+        converter = tf.lite.TFLiteConverter.from_saved_model("saved_model/direction_model")
+        converter.optimizations = [tf.lite.Optimize.DEFAULT]
+        converter.target_spec.supported_types = [tf.float16]
+        tflite_model = converter.convert()
 
-    model.save('saved_model/model')
-    converter = tf.lite.TFLiteConverter.from_saved_model("saved_model/model")
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    converter.target_spec.supported_types = [tf.float16]
-    tflite_model = converter.convert()
+        model_file = pathlib.Path('direction_model.tflite')
+        model_file.write_bytes(tflite_model)
 
-    model_file = pathlib.Path('model.tflite')
-    model_file.write_bytes(tflite_model)
+    if section:
+        train_data_generator = tf.keras.preprocessing.image.ImageDataGenerator(
+            rotation_range=5,
+            brightness_range=[0.8, 1.1],
+            shear_range=5,
+            zoom_range=[0.8, 1],
+            fill_mode='constant',
+            cval=0
+        )
+
+        validation_data_generator = tf.keras.preprocessing.image.ImageDataGenerator()
+
+        train_ds = train_data_generator.flow_from_directory(
+            f'{section_data_dir}/TRAIN',
+            target_size=(160, 320),
+            batch_size=64,
+            color_mode='grayscale',
+            seed=random.randrange(1, 1000)
+        )
+
+        val_ds = validation_data_generator.flow_from_directory(
+            f'{section_data_dir}/VALIDATION',
+            target_size=(160, 320),
+            batch_size=64,
+            color_mode='grayscale',
+            seed=random.randrange(1, 1000)
+        )
+
+        model = tf.keras.Sequential([
+            layers.Resizing(160, 320),
+            layers.Rescaling(1. / 255),
+            layers.Conv2D(40, (9, 9), activation='relu'),
+            layers.MaxPool2D(),
+            layers.Conv2D(40, (5, 5), activation='relu'),
+            layers.MaxPool2D(),
+            layers.Conv2D(50, (5, 5), activation='relu'),
+            layers.MaxPool2D(),
+            layers.Conv2D(50, (3, 3), activation='relu'),
+            layers.MaxPool2D(),
+            layers.Conv2D(60, (3, 3), activation='relu'),
+            layers.MaxPool2D(),
+            layers.Flatten(),
+            layers.Dense(100, activation='relu'),
+            layers.Dense(5, activation='softmax')
+        ])
+
+        model.compile(
+            optimizer="adam",
+            loss=tf.keras.losses.CategoricalCrossentropy(),
+            metrics=["accuracy"]
+        )
+
+        model.fit(
+            train_ds,
+            validation_data=val_ds,
+            epochs=15,
+        )
+
+        model.summary()
+
+        model.save('saved_model/section_model')
+        converter = tf.lite.TFLiteConverter.from_saved_model("saved_model/section_model")
+        converter.optimizations = [tf.lite.Optimize.DEFAULT]
+        converter.target_spec.supported_types = [tf.float16]
+        tflite_model = converter.convert()
+
+        model_file = pathlib.Path('section_model.tflite')
+        model_file.write_bytes(tflite_model)
 
 
 if __name__ == "__main__":
-    make_model()
+    make_model(direction=False)
