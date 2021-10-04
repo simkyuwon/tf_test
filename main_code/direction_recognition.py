@@ -2,12 +2,11 @@ import tflite_runtime.interpreter as tflite
 import numpy as np
 import cv2
 import pathlib
-from const_variables import const
 
 
 class DirectionRecognition:
     def __init__(self):
-        self.model_path = "model.tflite"
+        self.model_path = "direction_model.tflite"
         if not pathlib.Path.exists(pathlib.Path(self.model_path)):
             raise Exception("model not found")
         self.interpreter = tflite.Interpreter(model_path=self.model_path)

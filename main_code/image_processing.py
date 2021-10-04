@@ -3,7 +3,7 @@ import numpy as np
 import line_tracing
 import direction_recognition
 import arrow_recognition
-import room_recognition
+import section_recognition
 from const_variables import const
 
 
@@ -105,16 +105,34 @@ class LineTracingToCorner(RobotStateBase):
         return self.next_state
 
 
-class RoomRecognition(RobotStateBase):
-    def __init__(self, next_state):
+class SectionRecognition(RobotStateBase):
+    def __init__(self, next_state, controller):
         super().__init__(next_state)
-        self.room_recognition = room_recognition.RoomRecognition()
+        self.section_recognition = section_recognition.SectionRecognition()
+        self.controller = controller
+        self.predict_count = 0
+        self.predict_value = np.zeros(5)
+        self.color = {"RED": 0, "BLUE": 0, "NOT FOUND": 0}
 
     def __str__(self):
-        return "Room Recognition"
+        return "Section Recognition"
 
     def operation(self, source_image):
-        pass
+        self.predict_value += self.section_recognition.predict(source_image)
+        self.predict_count += 1
+        if self.predict_count < 4:
+            self.color[self.section_recognition.check_section_color(source_image)] += 1
+            return const.MOTION_SECTION_UNKNOWN
+        else:
+            label = np.argmax(self.predict_value[:4])
+            self.controller.section_name.append(label)
+            self.predict_count = 0
+            self.predict_value = np.zeros(5)
+            if self.color["RED"] > self.color["BLUE"]:
+                print("RED")
+            else:
+                print("BLUE")
+            return const.MOTION_SECTION_A + label
 
     def state_change(self):
         pass
@@ -122,12 +140,14 @@ class RoomRecognition(RobotStateBase):
 
 class RobotStateController:
     def __init__(self):
-        self.room_recognition = RoomRecognition(None)
-        self.line_tracing_to_corner = LineTracingToCorner(self.room_recognition)
+        self.section_recognition = SectionRecognition(None, self)
+        self.line_tracing_to_corner = LineTracingToCorner(self.section_recognition)
         self.arrow_recognition = ArrowRecognition(self.line_tracing_to_corner)
         self.find_cross = FindCross(self.arrow_recognition)
         self.line_tracing_to_door = LineTracingToDoor(self.find_cross)
         self.state = DirectionRecognition(self.line_tracing_to_door)
+
+        self.section_name = []
 
     def __str__(self):
         return f"now state : {self.state.__str__()}"
