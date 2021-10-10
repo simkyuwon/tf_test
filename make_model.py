@@ -82,44 +82,42 @@ def make_model(direction=True, section=True):
             rotation_range=5,
             brightness_range=[0.8, 1.1],
             shear_range=5,
-            zoom_range=[0.8, 1],
+            zoom_range=[0.9, 1],
             fill_mode='constant',
-            cval=0
+            cval=100
         )
 
         validation_data_generator = tf.keras.preprocessing.image.ImageDataGenerator()
 
         train_ds = train_data_generator.flow_from_directory(
             f'{section_data_dir}/TRAIN',
-            target_size=(160, 320),
+            target_size=(64, 64),
             batch_size=64,
-            color_mode='grayscale',
+            color_mode='rgb',
             seed=random.randrange(1, 1000)
         )
 
         val_ds = validation_data_generator.flow_from_directory(
             f'{section_data_dir}/VALIDATION',
-            target_size=(160, 320),
+            target_size=(64, 64),
             batch_size=64,
-            color_mode='grayscale',
+            color_mode='rgb',
             seed=random.randrange(1, 1000)
         )
 
         model = tf.keras.Sequential([
-            layers.Resizing(160, 320),
+            layers.Resizing(64, 64),
             layers.Rescaling(1. / 255),
-            layers.Conv2D(40, (9, 9), activation='relu'),
+            layers.Conv2D(32, (7, 7), padding='same', activation='relu'),
             layers.MaxPool2D(),
-            layers.Conv2D(40, (5, 5), activation='relu'),
+            layers.Conv2D(32, (5, 5), padding='same', activation='relu'),
             layers.MaxPool2D(),
-            layers.Conv2D(50, (5, 5), activation='relu'),
+            layers.Conv2D(64, (3, 3), activation='relu'),
             layers.MaxPool2D(),
-            layers.Conv2D(50, (3, 3), activation='relu'),
-            layers.MaxPool2D(),
-            layers.Conv2D(60, (3, 3), activation='relu'),
+            layers.Conv2D(64, (3, 3), activation='relu'),
             layers.MaxPool2D(),
             layers.Flatten(),
-            layers.Dense(100, activation='relu'),
+            layers.Dense(128, activation='relu'),
             layers.Dense(5, activation='softmax')
         ])
 
@@ -132,7 +130,7 @@ def make_model(direction=True, section=True):
         model.fit(
             train_ds,
             validation_data=val_ds,
-            epochs=15,
+            epochs=10,
         )
 
         model.summary()
