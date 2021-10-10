@@ -79,10 +79,10 @@ def make_model(direction=True, section=True):
 
     if section:
         train_data_generator = tf.keras.preprocessing.image.ImageDataGenerator(
-            rotation_range=5,
-            brightness_range=[0.8, 1.1],
-            shear_range=5,
-            zoom_range=[0.9, 1],
+            rotation_range=15,
+            brightness_range=[0.7, 1.2],
+            shear_range=10,
+            zoom_range=0.2,
             fill_mode='constant',
             cval=100
         )
