@@ -84,9 +84,9 @@ class LineTracing:
                 ret_value = const.MOTION_LINE_LOST
         else:
             x_start, y_start, x_end, y_end, angle, x_pos = line_list[line_index]
-            if -np.pi * 70 / 180 <= angle <= 0:
+            if -np.pi * 75 / 180 <= angle <= 0:
                 ret_value = const.MOTION_LINE_TURN_RIGHT_SMALL
-            elif 0 <= angle <= np.pi * 70 / 180:
+            elif 0 <= angle <= np.pi * 75 / 180:
                 ret_value = const.MOTION_LINE_TURN_LEFT_SMALL
             elif x_pos < self.img_width * 0.4:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
@@ -105,11 +105,11 @@ class LineTracing:
                 ret_value = const.MOTION_LINE_STOP
         else:
             x, y = corner_point
-            if x < self.img_width * 0.3:
+            if x < self.img_width * 0.35:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x > self.img_width * 0.7:
+            elif x > self.img_width * 0.65:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
-            elif y < self.img_height * 0.4:
+            elif y < self.img_height * 0.6:
                 ret_value = const.MOTION_LINE_MOVE_FRONT
         return ret_value
 

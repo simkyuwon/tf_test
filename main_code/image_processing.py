@@ -112,8 +112,8 @@ class SectionRecognition(RobotStateBase):
         self.controller = controller
         self.predict_count = -1
         self.predict_value = np.zeros(5)
-        self.color = {"RED": 0, "BLUE": 0, "NOT FOUND": 0}
         self.section_type = None
+        self.color = {"RED": 0, "BLUE": 0, "": 0}
 
     def __str__(self):
         return "Section Recognition"
@@ -125,31 +125,29 @@ class SectionRecognition(RobotStateBase):
             self.section_type = self.section_recognition.check_section_type(source_image)
             return self.section_type
 
-        self.predict_value += self.section_recognition.predict(source_image)
+        predict = self.section_recognition.predict(source_image)
+        self.predict_value += predict[0]
+        self.color[predict[1]] += 1
+
         if self.predict_count < 4:
-            self.color[self.section_recognition.check_section_color(source_image)] += 1
             return const.MOTION_SECTION_UNKNOWN
         else:
             label = np.argmax(self.predict_value[:4])
             self.controller.section_name.append(label)
             self.predict_count = 0
             self.predict_value = np.zeros(5)
-            if self.color["RED"] > self.color["BLUE"]:
-                print("RED")
-            else:
-                print("BLUE")
             return const.MOTION_SECTION_A + label
 
     def state_change(self):
-        if self.section_type == const.MOTION_SECTION_SAFE:
-            return self.next_state[0]
-        else:
-            return self.next_state[1]
+        next_state = self.next_state[0 if self.section_type == const.MOTION_SECTION_SAFE else 1]
+        next_state.section_color = "RED" if self.color["RED"] > self.color["BLUE"] else "BLUE"
+        return next_state
 
 
 class SafeSection(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
+        self.section_color = ""
 
     def __str__(self):
         return "Safe Section"
@@ -164,6 +162,7 @@ class SafeSection(RobotStateBase):
 class DangerSection(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
+        self.section_color = ""
 
     def __str__(self):
         return "Danger Section"

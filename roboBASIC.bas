@@ -145,6 +145,13 @@ PostureDefault:
     WAIT
     RETURN
 
+PostureSit:
+    MOVE G6A, 100, 145,  28, 145, 100, 100
+    MOVE G6D, 100, 145,  28, 145, 100, 100
+    MOVE G6B, 100,  30,  80
+    MOVE G6C, 100,  30,  80
+    WAIT
+    RETURN
 
 PostureDoor:
     MOVE G6A, 100,  76, 145,  93, 100, 100
@@ -169,59 +176,48 @@ PostureHeadDown:
     '********** Motion Begin **********'
 MotionWalkingFront:
     GOSUB MotorLegMode3
-    walking_speed1 = 13
-    walking_speed2 = 4
+    SPEED 15
+
+    MOVE G6A,  95,  76, 147,  93, 101
+    MOVE G6D, 101,  76, 147,  93,  98
+    MOVE G6B, 100
+    MOVE G6C, 100
+    WAIT
     FOR i = 1 TO walking_count
-        SPEED walking_speed2
-        MOVE G6A,  88,  74, 144,  95, 110
-        MOVE G6D, 108,  76, 146,  93,  96
-        MOVE G6B, 100
-        MOVE G6C, 100
+        MOVE G6A,  95,  90, 125, 100, 104
+        MOVE G6D, 104,  77, 147,  93, 102
+        MOVE G6B,  85
+        MOVE G6C, 115
         WAIT
 
-        SPEED walking_speed1
-        MOVE G6A,  90,  90, 120, 105, 110, 100
-        MOVE G6D, 110,  76, 147,  93,  96, 100
-        MOVE G6B,  90
-        MOVE G6C, 110
+        MOVE G6A, 103,  73, 140, 103, 100
+        MOVE G6D,  95,  85, 147,  85, 102
         WAIT
 
-        SPEED walking_speed1
-        MOVE G6A,  86,  56, 145, 115, 110
-        MOVE G6D, 108,  76, 147,  93,  96
+        MOVE G6D,  95,  90, 125, 100, 104
+        MOVE G6A, 104,  77, 147,  93, 102
+        MOVE G6C,  85
+        MOVE G6B, 115
         WAIT
 
-        SPEED walking_speed2
-        MOVE G6A, 110,  76, 147,  93,  96, 100
-        MOVE G6D,  86, 100, 145,  69, 110, 100
+        MOVE G6D, 103,  73, 140, 103, 100
+        MOVE G6A,  95,  85, 147,  85, 102
         WAIT
 
-        SPEED walking_speed1
-        MOVE G6A, 110,  76, 147,  93,  96, 100
-        MOVE G6D,  90,  90, 120, 105, 110, 100
-        MOVE G6B, 110
-        MOVE G6C,  90
-        WAIT
-
-        MOVE G6D,  86,  56, 145, 115, 110
-        MOVE G6A, 108,  76, 147,  93,  96
-        WAIT
-
-        SPEED walking_speed2
-        MOVE G6D, 110,  76, 147,  93,  96
-        MOVE G6A,  86, 100, 145,  69, 110
-        WAIT
-
-        SPEED walking_speed1
-        MOVE G6A,  90,  90, 120, 105, 110, 100
-        MOVE G6D, 110,  76, 146,  93,  96, 100
-        MOVE G6B,  90
-        MOVE G6C, 110
-        WAIT
     NEXT i
 
-    SPEED 2
+    MOVE G6A,  95,  90, 125,  95, 104
+    MOVE G6D, 104,  76, 145,  91, 102
+    MOVE G6B, 100
+    MOVE G6C, 100
+    WAIT
+
+    SPEED 12
+    GOSUB PostureInit
+
+    SPEED 4
     GOSUB PostureDefault
+
     RETURN
 
 MotionWalkingRight:
@@ -241,10 +237,10 @@ MotionWalkingRight:
         MOVE G6D,  95,  76, 145,  93, 102, 100
         MOVE G6A,  95,  76, 145,  93, 102, 100
         WAIT
-
-        SPEED 8
-        GOSUB PostureDefault
     NEXT i
+
+    SPEED 8
+    GOSUB PostureDefault
     GOSUB MotorAllMode3
     RETURN
 
@@ -266,10 +262,10 @@ MotionWalkingLeft:
         MOVE G6A,  95,  76, 145,  93, 102, 100
         MOVE G6D,  95,  76, 145,  93, 102, 100
         WAIT
-
-        SPEED 8
-        GOSUB PostureDefault
     NEXT i
+
+    SPEED 8
+    GOSUB PostureDefault
     GOSUB MotorAllMode3
     RETURN
 
@@ -548,6 +544,8 @@ Initiate:
     PRINT "OPEN 20GongMo.mrs !"
     PRINT "VOLUME 200 !"
     PRINT "SND 12 !"
+
+    GOSUB MotorAllMode3
     RETURN
 
 UartRx:
@@ -623,7 +621,7 @@ StateLinetracingToDoor:
     IF rx_data = cMOTION_LINE_LOST THEN
         GOTO StateFindCrossInit
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
-        walking_count = 1
+        walking_count = 2
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
         walking_count = 1
@@ -692,7 +690,7 @@ StateArrowRecognition:
     ETX 4800, cSIGNAL_IMAGE
     GOSUB UartRx
 
-    walking_count = 3
+    walking_count = 5
     GOSUB MotionWalkingFront
 
 
@@ -721,7 +719,7 @@ StateLinetracingToCornerInit:
     head_angle = 30
     GOSUB PostureHeadDown
 
-    walking_count = 1
+    walking_count = 2
     GOSUB MotionWalkingFront
 
 StateLinetracingToCorner:
@@ -731,7 +729,7 @@ StateLinetracingToCorner:
     IF rx_data = cMOTION_LINE_STOP THEN
         head_angle = 100
         GOSUB PostureHeadDown
-        walking_count = 2
+        walking_count = 3
         GOSUB MotionWalkingFront
         GOTO StateSectionRecognitionInit
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
