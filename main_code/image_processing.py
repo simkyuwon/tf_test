@@ -69,7 +69,7 @@ class FindCross(RobotStateBase):
         return "Find Cross"
 
     def operation(self, source_image):
-        return self.line_tracing.select_corner_motion(self.line_tracing.detect_line(source_image))
+        return self.line_tracing.select_cross_motion(self.line_tracing.detect_line(source_image))
 
     def state_change(self):
         return self.next_state
@@ -110,16 +110,22 @@ class SectionRecognition(RobotStateBase):
         super().__init__(next_state)
         self.section_recognition = section_recognition.SectionRecognition()
         self.controller = controller
-        self.predict_count = 0
+        self.predict_count = -1
         self.predict_value = np.zeros(5)
         self.color = {"RED": 0, "BLUE": 0, "NOT FOUND": 0}
+        self.section_type = None
 
     def __str__(self):
         return "Section Recognition"
 
     def operation(self, source_image):
-        self.predict_value += self.section_recognition.predict(source_image)
         self.predict_count += 1
+
+        if self.predict_count == 0:
+            self.section_type = self.section_recognition.check_section_type(source_image)
+            return self.section_type
+
+        self.predict_value += self.section_recognition.predict(source_image)
         if self.predict_count < 4:
             self.color[self.section_recognition.check_section_color(source_image)] += 1
             return const.MOTION_SECTION_UNKNOWN
@@ -135,12 +141,45 @@ class SectionRecognition(RobotStateBase):
             return const.MOTION_SECTION_A + label
 
     def state_change(self):
+        if self.section_type == const.MOTION_SECTION_SAFE:
+            return self.next_state[0]
+        else:
+            return self.next_state[1]
+
+
+class SafeSection(RobotStateBase):
+    def __init__(self, next_state):
+        super().__init__(next_state)
+
+    def __str__(self):
+        return "Safe Section"
+
+    def operation(self, source_image):
+        pass
+
+    def state_change(self):
+        pass
+
+
+class DangerSection(RobotStateBase):
+    def __init__(self, next_state):
+        super().__init__(next_state)
+
+    def __str__(self):
+        return "Danger Section"
+
+    def operation(self, source_image):
+        pass
+
+    def state_change(self):
         pass
 
 
 class RobotStateController:
     def __init__(self):
-        self.section_recognition = SectionRecognition(None, self)
+        self.danger_section = None
+        self.safe_section = None
+        self.section_recognition = SectionRecognition([self.safe_section, self.danger_section], self)
         self.line_tracing_to_corner = LineTracingToCorner(self.section_recognition)
         self.arrow_recognition = ArrowRecognition(self.line_tracing_to_corner)
         self.find_cross = FindCross(self.arrow_recognition)

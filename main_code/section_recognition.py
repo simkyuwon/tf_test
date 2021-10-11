@@ -2,13 +2,10 @@ import tflite_runtime.interpreter as tflite
 import numpy as np
 import cv2
 import pathlib
+from const_variables import const
 
 
 class SectionRecognition:
-    red_range1 = [(0, 100, 50), (20, 255, 255)]
-    red_range2 = [(160, 100, 50), (180, 255, 255)]
-    blue_range = [(100, 100, 50), (120, 255, 255)]
-
     def __init__(self):
         self.model_path = "section_model.tflite"
         if not pathlib.Path.exists(pathlib.Path(self.model_path)):
@@ -17,6 +14,14 @@ class SectionRecognition:
         self.interpreter.allocate_tensors()
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
+
+    def check_section_type(self, source_image):
+        hsv_image = cv2.cvtColor(source_image[60:], cv2.COLOR_BGR2HSV)
+        green_image = cv2.inRange(hsv_image, const.GREEN_RANGE[0], const.GREEN_RANGE[1])
+        if cv2.countNonZero(green_image) > 5000:
+            return const.MOTION_SECTION_SAFE
+        else:
+            return const.MOTION_SECTION_DANGER
 
     def predict(self, source_image):
         hsv_image = cv2.cvtColor(source_image[40:-40], cv2.COLOR_BGR2HSV)
@@ -33,9 +38,9 @@ class SectionRecognition:
 
     def check_section_color(self, source_image):
         hsv_image = cv2.cvtColor(source_image[50:-40], cv2.COLOR_BGR2HSV)
-        red_image = cv2.bitwise_or(cv2.inRange(hsv_image, self.red_range1[0], self.red_range1[1]),
-                                   cv2.inRange(hsv_image, self.red_range2[0], self.red_range2[1]))
-        blue_image = cv2.inRange(hsv_image, self.blue_range[0], self.blue_range[1])
+        red_image = cv2.bitwise_or(cv2.inRange(hsv_image, const.RED_RANGE1[0], const.RED_RANGE1[1]),
+                                   cv2.inRange(hsv_image, const.RED_RANGE2[0], const.RED_RANGE2[1]))
+        blue_image = cv2.inRange(hsv_image, const.BLUE_RANGE[0], const.BLUE_RANGE[1])
 
         __, labeling_array, labeling_stats, __ = cv2.connectedComponentsWithStats(cv2.bitwise_or(red_image, blue_image))
         labeling_stats_swap = labeling_stats.swapaxes(0, 1)
@@ -45,9 +50,9 @@ class SectionRecognition:
             roi_x, roi_y, roi_w, roi_h = labeling_stats[1][:4]
             roi_image = hsv_image[roi_y:roi_y + roi_h, roi_x:roi_x+roi_w]
 
-            red_image = cv2.bitwise_or(cv2.inRange(roi_image, self.red_range1[0], self.red_range1[1]),
-                                       cv2.inRange(roi_image, self.red_range2[0], self.red_range2[1]))
-            blue_image = cv2.inRange(roi_image, self.blue_range[0], self.blue_range[1])
+            red_image = cv2.bitwise_or(cv2.inRange(roi_image, const.RED_RANGE1[0], const.RED_RANGE1[1]),
+                                       cv2.inRange(roi_image, const.RED_RANGE2[0], const.RED_RANGE2[1]))
+            blue_image = cv2.inRange(roi_image, const.BLUE_RANGE[0], const.BLUE_RANGE[1])
             if cv2.countNonZero(red_image) > cv2.countNonZero(blue_image):
                 return "RED"
             else:

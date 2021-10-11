@@ -12,7 +12,10 @@ def find_largest_contour(contours):
         if contour_area > largest_contour_area:
             largest_contour_area = contour_area
             largest_contour_index = index
-    return contours[largest_contour_index]
+    if largest_contour_index != -1:
+        return contours[largest_contour_index]
+    else:
+        return None
 
 
 class ArrowRecognition:
@@ -24,6 +27,8 @@ class ArrowRecognition:
         threshold_image = cv2.morphologyEx(threshold_image, cv2.MORPH_CLOSE, self.rect_kernel)
 
         contour = find_largest_contour(cv2.findContours(threshold_image, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)[0])
+        if contour is None:  # contour not found
+            return const.MOTION_ARROW_UNKNOWN
 
         convex_hull = cv2.convexHull(contour, returnPoints=False)
         defects = cv2.convexityDefects(contour, convex_hull)

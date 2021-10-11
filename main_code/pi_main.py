@@ -56,14 +56,12 @@ if __name__ == '__main__':
         else:
             continue
 
-        frame = cv2.GaussianBlur(frame, (3, 3), 0)
-
         if cv2.waitKey(10) == 27:
             break
 
         print(robot_state_controller)
         if serial_data == const.SIGNAL_IMAGE:
-            tx_data(serial_port, robot_state_controller.operation(frame))
+            tx_data(serial_port, robot_state_controller.operation(cv2.GaussianBlur(frame, (3, 3), 0)))
             # cv2.imshow('frame', frame)
             ftp.store_image(frame)
         elif serial_data == const.SIGNAL_STATE:

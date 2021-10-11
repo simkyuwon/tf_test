@@ -15,7 +15,12 @@ const.BPS = 4800
 
 const.HEIGHT_SIZE = 240
 const.WIDTH_SIZE = 320
-const.FPS = 20
+const.FPS = 30
+
+const.RED_RANGE1 = [(0, 100, 50), (20, 255, 255)]
+const.RED_RANGE2 = [(160, 100, 50), (180, 255, 255)]
+const.GREEN_RANGE = [(40, 100, 50), (90, 255, 255)]
+const.BLUE_RANGE = [(100, 100, 50), (120, 255, 255)]
 
 const.SIGNAL_CHECK = 0x40
 const.SIGNAL_IMAGE = 0x41
@@ -48,3 +53,5 @@ const.MOTION_SECTION_A = 0xB1
 const.MOTION_SECTION_B = 0xB2
 const.MOTION_SECTION_C = 0xB3
 const.MOTION_SECTION_D = 0xB4
+const.MOTION_SECTION_SAFE = 0xB5
+const.MOTION_SECTION_DANGER = 0xB6

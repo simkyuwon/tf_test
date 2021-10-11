@@ -10,6 +10,10 @@ def calculate_angle(x_diff, y_diff):
         return np.arctan(y_diff / x_diff)
 
 
+def calculate_distance(point1, point2):
+    return np.sum(np.square(np.array((point1[0], point1[1])) - np.array((point2[0], point2[1]))))
+
+
 def detect_corner(line_list):
     if len(line_list) >= 2:
         x1_start, y1_start, x1_end, y1_end, angle1, x1_pos = line_list[0]
@@ -22,6 +26,18 @@ def detect_corner(line_list):
         corner_x, corner_y = np.linalg.inv(arr1) @ arr2
         return corner_x, corner_y
     return None
+
+
+def is_cross(line_list, corner_point):
+    if len(line_list) <= 1:
+        return False
+
+    for line in line_list:
+        x_start, y_start, x_end, y_end, angle, x_pos = line
+        if calculate_distance((x_start, y_start), corner_point) > 100 and \
+                calculate_distance((x_end, y_end), corner_point) > 100:
+            return True
+    return False
 
 
 class LineTracing:
@@ -68,13 +84,13 @@ class LineTracing:
                 ret_value = const.MOTION_LINE_LOST
         else:
             x_start, y_start, x_end, y_end, angle, x_pos = line_list[line_index]
-            if -np.pi * 65 / 180 <= angle <= 0:
+            if -np.pi * 70 / 180 <= angle <= 0:
                 ret_value = const.MOTION_LINE_TURN_RIGHT_SMALL
-            elif 0 <= angle <= np.pi * 65 / 180:
+            elif 0 <= angle <= np.pi * 70 / 180:
                 ret_value = const.MOTION_LINE_TURN_LEFT_SMALL
-            elif x_pos < self.img_width * 0.35:
+            elif x_pos < self.img_width * 0.4:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x_pos > self.img_width * 0.65:
+            elif x_pos > self.img_width * 0.6:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
             self.prev_angle, self.prev_x = angle, x_pos
         self.prev_motion = ret_value
@@ -83,7 +99,7 @@ class LineTracing:
     def select_corner_motion(self, line_list):
         ret_value = const.MOTION_LINE_STOP
         corner_point = detect_corner(line_list)
-        if not corner_point:
+        if not corner_point or is_cross(line_list, corner_point):
             ret_value = self.select_line_motion(line_list)
             if ret_value == const.MOTION_LINE_LOST:
                 ret_value = const.MOTION_LINE_STOP
@@ -93,7 +109,24 @@ class LineTracing:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
             elif x > self.img_width * 0.7:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
-            elif y < self.img_height * 0.3:
+            elif y < self.img_height * 0.4:
+                ret_value = const.MOTION_LINE_MOVE_FRONT
+        return ret_value
+
+    def select_cross_motion(self, line_list):
+        ret_value = const.MOTION_LINE_STOP
+        corner_point = detect_corner(line_list)
+        if (not corner_point) or (not is_cross(line_list, corner_point)):
+            ret_value = self.select_line_motion(line_list)
+            if ret_value == const.MOTION_LINE_LOST:
+                ret_value = const.MOTION_LINE_STOP
+        else:
+            x, y = corner_point
+            if x < self.img_width * 0.3:
+                ret_value = const.MOTION_LINE_MOVE_LEFT
+            elif x > self.img_width * 0.7:
+                ret_value = const.MOTION_LINE_MOVE_RIGHT
+            elif y < self.img_height * 0.4:
                 ret_value = const.MOTION_LINE_MOVE_FRONT
         return ret_value
 
@@ -106,7 +139,7 @@ class LineTracing:
             for index2, line2 in enumerate(line_list[1:], 1):
                 x2_start, y2_start, x2_end, y2_end, angle2, __ = line2
                 if abs(angle1 - angle2) < np.pi / 6:
-                    if np.sum(np.square(np.array((x1_end, y1_end)) - np.array((x2_start, y2_start)))) < 500:
+                    if calculate_distance((x1_end, y1_end), (x2_start, y2_start)) < 500:
                         x1_end, y1_end = x2_end, y2_end
                         angle1 = calculate_angle(x1_end - x1_start, y1_end - y1_start)
                         merge_list.append(index2)

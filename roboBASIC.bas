@@ -1,4 +1,4 @@
-CONST cHEAD_SPEED = 7
+CONST cHEAD_SPEED = 10
 CONST cIR_SENSOR_PORT = 4
 
 '********** protocol value begin **********'
@@ -28,15 +28,25 @@ CONST cMOTION_DIRECTION_DOOR = &H95
 CONST cMOTION_ARROW_UNKNOWN = &HA0
 CONST cMOTION_ARROW_LEFT = &HA1
 CONST cMOTION_ARROW_RIGHT = &HA2
+
+CONST cMOTION_SECTION_UNKNOWN = &HB0
+CONST cMOTION_SECTION_A = &HB1
+CONST cMOTION_SECTION_B = &HB2
+CONST cMOTION_SECTION_C = &HB3
+CONST cMOTION_SECTION_D = &HB4
+CONST cMOTION_SECTION_SAFE = &HB5
+CONST cMOTION_SECTION_DANGER = &HB6
 '********** protocol value end **********'
 
 DIM i AS BYTE
+DIM j AS BYTE
 DIM rx_data AS BYTE
 DIM ir_data AS INTEGER
 DIM walking_speed1 AS BYTE
 DIM walking_speed2 AS BYTE
 DIM walking_count AS INTEGER
 DIM head_angle AS BYTE
+DIM clockwise AS BYTE
 
 GOTO Main
 
@@ -142,22 +152,16 @@ PostureDoor:
     WAIT
     RETURN
 
-PostureHeadCenter:
-    SPEED cHEAD_SPEED
-    SERVO 11, 100
-    DELAY 500
-    RETURN
-
 PostureHeadTurn:
     SPEED cHEAD_SPEED
     SERVO 11, head_angle
-    DELAY 500
+    DELAY 400
     RETURN
 
 PostureHeadDown:
     SPEED cHEAD_SPEED
     SERVO 16, head_angle
-    DELAY 500
+    DELAY 400
     RETURN
     '********** Posture Setting End **********'
 
@@ -331,7 +335,7 @@ MotionWalkingFrontDoor:
     GOSUB MotorLegMode3
     walking_speed1 = 13
     walking_speed2 = 3
-	
+
     FOR i = 1 TO walking_count
         SPEED walking_speed2
         MOVE G6A,  88,  74, 143,  96, 110
@@ -371,10 +375,10 @@ MotionWalkingFrontDoor:
         MOVE G6D, 110,  76, 146,  93,  96, 100
         WAIT
     NEXT i
-    
+
     SPEED 2
     GOSUB PostureDoor
-	RETURN
+    RETURN
 
 MotionWalkingRightDoor:
     MOTORMODE G6A, 3, 3, 3, 3, 2
@@ -484,18 +488,15 @@ MotionTurnLeftDoor:
     RETURN
 
 MotionOpenDoor:
-    walking_count = 1
-    GOSUB MotionWalkingFront
-        
     SPEED 8
     MOVE G6B, 180,  20,  50
-	MOVE G6C, 180,  20,  50
-	WAIT
-	
+    MOVE G6C, 180,  20,  50
+    WAIT
+
     MOVE G6B, 180,  20,  75
-	MOVE G6C, 180,  20,  75
-	WAIT
-    
+    MOVE G6C, 180,  20,  75
+    WAIT
+
     walking_count = 2
     GOSUB MotionWalkingFrontDoor
     RETURN
@@ -544,6 +545,7 @@ Initiate:
     GOSUB PostureInit
     GOSUB PostureDefault
 
+    PRINT "OPEN 20GongMo.mrs !"
     PRINT "VOLUME 200 !"
     PRINT "SND 12 !"
     RETURN
@@ -570,12 +572,12 @@ StateDirectionRecognition:
     head_angle = 75
     GOSUB PostureHeadDown
 
-	FOR i = 0 TO 3
-	    head_angle = i * 12 + 82
-	    GOSUB PostureHeadTurn
+    FOR i = 0 TO 3
+        head_angle = i * 12 + 82
+        GOSUB PostureHeadTurn
         ETX 4800, cSIGNAL_IMAGE
         GOSUB UartRx
-	NEXT i
+    NEXT i
 
     GOSUB MotorArmMode3
     SPEED 15
@@ -608,8 +610,9 @@ StateDirectionRecognition:
 StateLinetracingToDoorInit:
     ETX 4800, cSIGNAL_STATE
 
-    GOSUB PostureHeadCenter
-    
+	head_angle = 100
+    GOSUB PostureHeadTurn
+
     head_angle = 30
     GOSUB PostureHeadDown
 
@@ -641,7 +644,7 @@ StateLinetracingToDoor:
 
 StateFindCrossInit:
     ETX 4800, cSIGNAL_STATE
-    
+
     MUSIC "EDCDEEE"
     GOSUB MotionOpenDoor
 
@@ -669,52 +672,56 @@ StateFindCross:
     ENDIF
 
     GOTO StateFindCross
-    
+
 StateArrowRecognitionInit:
     ETX 4800, cSIGNAL_STATE
     
-    
     SPEED 8
     MOVE G6B, 150,  30,  80
-	MOVE G6C, 150,  30,  80
-	WAIT
-	
-	GOSUB PostureDefault
-    
-	head_angle = 110
-	GOSUB PostureHeadDown
+    MOVE G6C, 150,  30,  80
+    WAIT
+
+    GOSUB PostureDefault
+
+    head_angle = 115
+    GOSUB PostureHeadDown
+    MUSIC "CDEFG"
+
 
 StateArrowRecognition:
     ETX 4800, cSIGNAL_IMAGE
     GOSUB UartRx
 
+    walking_count = 3
+    GOSUB MotionWalkingFront
+
+
     IF rx_data = cMOTION_ARROW_UNKNOWN THEN
-    	'walking_count = 1
-    	'GOSUB MotionWalkingBack
-    	'GOTO StateArrowRecognition
+        'walking_count = 1
+        'GOSUB MotionWalkingBack
+        'GOTO StateArrowRecognition
     ELSEIF rx_data = cMOTION_ARROW_LEFT THEN
-		walking_count = 3
-		GOSUB MotionWalkingFront
-	    
+        clockwise = 1
+        
         walking_count = 4
         GOSUB MotionTurnLeft
     ELSEIF rx_data = cMOTION_ARROW_RIGHT THEN
-		walking_count = 3
-		GOSUB MotionWalkingFront
-    
+        clockwise = 0
+        
         walking_count = 4
         GOSUB MotionTurnRight
     ENDIF
-    
+
     GOTO StateLinetracingToCornerInit
 
 StateLinetracingToCornerInit:
+    MUSIC "GGEECC"
     ETX 4800, cSIGNAL_STATE
 
     head_angle = 30
     GOSUB PostureHeadDown
-    
-    walking_count = 2
+
+    walking_count = 1
     GOSUB MotionWalkingFront
 
 StateLinetracingToCorner:
@@ -722,13 +729,11 @@ StateLinetracingToCorner:
     GOSUB UartRx
 
     IF rx_data = cMOTION_LINE_STOP THEN
-	    head_angle = 100
-	    GOSUB PostureHeadDown
+        head_angle = 100
+        GOSUB PostureHeadDown
         walking_count = 2
         GOSUB MotionWalkingFront
-        MUSIC "CFCFCF"
-        DELAY 1000
-        GOTO Main
+        GOTO StateSectionRecognitionInit
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
         walking_count = 1
         GOSUB MotionWalkingFront
@@ -747,12 +752,52 @@ StateLinetracingToCorner:
     ENDIF
 
     GOTO StateLinetracingToCorner
+
+StateSectionRecognitionInit:
+    ETX 4800, cSIGNAL_STATE
+
+StateSectionRecognition:
+    head_angle = 70
+    GOSUB PostureHeadDown
+    IF clockwise = 1 THEN
+        head_angle = 50
+    ELSE
+        head_angle = 150
+    ENDIF
+    GOSUB PostureHeadTurn
+
+    ETX 4800, cSIGNAL_IMAGE
+    GOSUB UartRx
+
+    IF rx_data = cMOTION_SECTION_SAFE THEN
+        PRINT "SND 4 !"
+    ELSEIF rx_data = cMOTION_SECTION_DANGER THEN
+        PRINT "SND 5 !"
+    ENDIF
+
+    FOR j = 0 TO 1
+        FOR i = 0 TO 1
+            head_angle = 10 * j + 80
+            GOSUB PostureHeadDown
+
+            head_angle = 10 * i + 95
+            GOSUB PostureHeadTurn
+
+            ETX 4800, cSIGNAL_IMAGE
+            GOSUB UartRx
+        NEXT i
+    NEXT j
+
+    MUSIC "GFEDC"
+    DELAY 1000
+    GOTO Main
+
     '********** State End **********'
 
 
     '********** Main Begin **********'
 Main:
-    GOSUB Initiate    
+    GOSUB Initiate
     GOSUB UartConnectWait
     GOTO StateDirectionRecognition
     '********** Main End **********'
