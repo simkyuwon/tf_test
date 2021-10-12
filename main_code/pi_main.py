@@ -22,7 +22,7 @@ def rx_data(ser):
 
 
 if __name__ == '__main__':
-    ftp = capture.FtpClient(ip_address="192.168.0.3", user="simkyuwon", passwd="mil18-76061632")
+    ftp = capture.FtpClient(ip_address="192.168.0.4", user="simkyuwon", passwd="mil18-76061632")
     while True:
         try:
             cap = cv2.VideoCapture(0)  # 카메라 켜기  # 카메라 캡쳐 (사진만 가져옴)

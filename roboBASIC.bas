@@ -36,6 +36,13 @@ CONST cMOTION_SECTION_C = &HB3
 CONST cMOTION_SECTION_D = &HB4
 CONST cMOTION_SECTION_SAFE = &HB5
 CONST cMOTION_SECTION_DANGER = &HB6
+
+CONST cMOTION_MILK_NOT_FOUND = &HC0
+CONST cMOTION_MILK_FOUND = &HC1
+CONST cMOTION_MILK_MOVE_FRONT = &HC2
+CONST cMOTION_MILK_MOVE_LEFT = &HC3
+CONST cMOTION_MILK_MOVE_RIGHT = &HC4
+CONST cMOTION_MILK_IN_SECTION = &HC5
 '********** protocol value end **********'
 
 DIM i AS BYTE
@@ -47,6 +54,8 @@ DIM walking_speed2 AS BYTE
 DIM walking_count AS INTEGER
 DIM head_angle AS BYTE
 DIM clockwise AS BYTE
+DIM section_type AS BYTE
+DIM mission_count AS BYTE
 
 GOTO Main
 
@@ -156,6 +165,14 @@ PostureSit:
 PostureDoor:
     MOVE G6A, 100,  76, 145,  93, 100, 100
     MOVE G6D, 100,  76, 145,  93, 100, 100
+    WAIT
+    RETURN
+
+PostureMilk:
+    MOVE G6A, 100,  76, 145,  93, 100, 100
+    MOVE G6D, 100,  76, 145,  93, 100, 100
+    MOVE G6B, 190,  15,  55,    ,    ,
+    MOVE G6C, 190,  15,  55,    ,    ,
     WAIT
     RETURN
 
@@ -493,8 +510,163 @@ MotionOpenDoor:
     MOVE G6C, 180,  20,  75
     WAIT
 
-    walking_count = 2
+    walking_count = 3
     GOSUB MotionWalkingFrontDoor
+    RETURN
+    
+MotionCatchMilk:
+    GOSUB MotorLegMode3
+
+    SPEED 6
+    GOSUB PostureSit
+    WAIT
+
+    GOSUB MotorArmMode3
+
+    SPEED 12	
+    MOVE G6B, 165,  10, 100
+    MOVE G6C, 165,  10, 100
+    WAIT	
+
+    SPEED 6
+    MOVE G6A,  87, 145,  28, 159, 115,
+    MOVE G6D,  87, 145,  28, 159, 115,
+    WAIT
+
+    SPEED 12
+    MOVE G6B, 145,  15,  55,  ,  ,
+    MOVE G6C, 145,  15,  55,  ,  ,
+    WAIT
+
+    MOVE G6B, 165,  30, 100
+    MOVE G6C, 165,  30, 100
+    WAIT
+
+    MOVE G6B, 145,  15,  55,  ,  ,
+    MOVE G6C, 145,  15,  55,  ,  ,
+    WAIT
+
+    MOVE G6B, 165,  20, 100
+    MOVE G6C, 165,  20, 100
+    WAIT
+
+
+    SPEED 2
+    MOVE G6B, 153,  15,  55,  ,  ,
+    MOVE G6C, 153,  15,  55,  ,  ,
+    WAIT
+
+    SPEED 6
+    MOVE G6A, 100, 145,  28, 145, 100,
+    MOVE G6D, 100, 145,  28, 145, 100,
+    WAIT
+
+    SPEED 5
+    MOVE G6A, 100,  76, 145,  93, 100, 100
+    MOVE G6D, 100,  76, 145,  93, 100, 100
+    WAIT
+
+    MOVE G6B, 190,  15,  55,  ,  ,
+    MOVE G6C, 190,  15,  55,  ,  ,
+    WAIT
+
+
+    '    MOVE G6A, 100,  76, 145,  83, 100,
+    '    MOVE G6D, 100,  76, 145,  83, 100,
+    '    WAIT
+
+    GOSUB MotorAllMode3
+    RETURN
+
+MotionWlkingFrontWithMilk:
+    GOSUB MotorAllMode3
+    SPEED 7
+
+    MOVE G6A,  95,  76, 147,  83, 101
+    MOVE G6D, 101,  76, 147,  83,  98
+    MOVE G6B, 190,  15,  55,    ,    ,
+    MOVE G6C, 190,  15,  55,    ,    ,
+    WAIT
+
+    FOR i = 1 TO walking_count
+        MOVE G6A,  95,  90, 125,  90, 104
+        MOVE G6D, 104,  77, 147,  83, 102
+        WAIT
+
+        MOVE G6A, 103,  73, 140,  93, 100
+        MOVE G6D,  95,  85, 147,  75, 102
+        WAIT
+
+        MOVE G6D,  95,  90, 125,  90, 104
+        MOVE G6A, 104,  77, 147,  83, 102
+        WAIT
+
+        MOVE G6D, 103,  73, 140,  93, 100
+        MOVE G6A,  95,  85, 147,  75, 102
+        WAIT
+    NEXT i
+
+    MOVE G6A,  95,  90, 125,  85, 104
+    MOVE G6D, 104,  76, 145,  81, 102
+    WAIT
+
+    SPEED 12
+    GOSUB PostureMilk
+    RETURN
+
+MotionTurnRightWithMilk:
+    GOSUB MotorLegMode2
+    FOR i = 1 TO walking_count
+        SPEED 8
+        MOVE G6D,  93,  96, 145,  73, 105, 100
+        MOVE G6A,  95,  56, 145, 113, 105, 100
+        WAIT
+
+        SPEED 6
+        MOVE G6D,  93,  96, 145,  73, 105, 100
+        MOVE G6A,  94,  56, 145, 113, 105, 100
+        WAIT
+
+        SPEED 7
+        MOVE G6D,  93,  96, 145,  73, 105, 100
+        MOVE G6A,  93,  56, 145, 113, 105, 100
+        WAIT
+
+        SPEED 6
+        MOVE G6D, 100,  76, 146,  93,  98, 100
+        MOVE G6A, 101,  76, 146,  93,  98, 100
+        WAIT
+    NEXT i
+    GOSUB MotorLegMode1
+    GOSUB PostureMilk
+    RETURN
+
+MotionTurnLeftWithMilk:
+    GOSUB MotorLegMode2
+    FOR i = 1 TO walking_count
+        SPEED 8
+        MOVE G6D,  95,  56, 145, 113, 105, 100
+        MOVE G6A,  93,  96, 145,  73, 105, 100
+        WAIT
+
+        SPEED 6
+        MOVE G6D,  94,  56, 145, 113, 105, 100
+        MOVE G6A,  93,  96, 145,  73, 105, 100
+        WAIT
+
+        SPEED 7
+        MOVE G6D,  93,  56, 145, 113, 105, 100
+        MOVE G6A,  93,  96, 145,  73, 105, 100
+        WAIT
+
+        SPEED 6
+        MOVE G6D, 101,  76, 146,  93,  98, 100
+        MOVE G6A, 101,  76, 146,  93,  98, 100
+        WAIT
+    NEXT i
+
+    GOSUB MotorLegMode1
+    GOSUB PostureMilk
     RETURN
     '********** Motion End **********'
 
@@ -544,6 +716,8 @@ Initiate:
     PRINT "OPEN 20GongMo.mrs !"
     PRINT "VOLUME 200 !"
     PRINT "SND 12 !"
+    
+    mission_count = 0
 
     GOSUB MotorAllMode3
     RETURN
@@ -642,8 +816,6 @@ StateLinetracingToDoor:
 
 StateFindCrossInit:
     ETX 4800, cSIGNAL_STATE
-
-    MUSIC "EDCDEEE"
     GOSUB MotionOpenDoor
 
 StateFindCross:
@@ -683,7 +855,6 @@ StateArrowRecognitionInit:
 
     head_angle = 115
     GOSUB PostureHeadDown
-    MUSIC "CDEFG"
 
 
 StateArrowRecognition:
@@ -713,8 +884,8 @@ StateArrowRecognition:
     GOTO StateLinetracingToCornerInit
 
 StateLinetracingToCornerInit:
-    MUSIC "GGEECC"
     ETX 4800, cSIGNAL_STATE
+	mission_count = mission_count + 1
 
     head_angle = 30
     GOSUB PostureHeadDown
@@ -723,6 +894,7 @@ StateLinetracingToCornerInit:
     GOSUB MotionWalkingFront
 
 StateLinetracingToCorner:
+	
     ETX 4800, cSIGNAL_IMAGE
     GOSUB UartRx
 
@@ -768,8 +940,10 @@ StateSectionRecognition:
     GOSUB UartRx
 
     IF rx_data = cMOTION_SECTION_SAFE THEN
+    	section_type = 1
         PRINT "SND 4 !"
     ELSEIF rx_data = cMOTION_SECTION_DANGER THEN
+    	section_type = 0
         PRINT "SND 5 !"
     ENDIF
 
@@ -786,12 +960,166 @@ StateSectionRecognition:
         NEXT i
     NEXT j
 
-    MUSIC "GFEDC"
-    DELAY 1000
-    GOTO Main
+	IF section_type = 1 THEN
+		GOTO StateSafeSectionFindMilkInit
+	ELSE
+		GOTO StateDangerSectionFindMilkInit
+	ENDIF
+
+StateSafeSectionFindMilkInit:
+    ETX 4800, cSIGNAL_STATE
+	head_angle = 100
+	GOSUB PostureHeadTurn
+	
+	head_angle = 60
+	GOSUB PostureHeadDown
+	
+StateSafeSectionFindMilk:
+	ETX 4800, cSIGNAL_IMAGE
+	GOSUB UartRx
+	
+	IF rx_data = cMOTION_MILK_FOUND THEN
+		GOTO StateSafeSectionCatchMilkInit
+	ELSE
+		walking_count = 4
+		IF clockwise = 1 THEN
+			GOSUB MotionTurnLeft
+		ELSE
+			GOSUB MotionTurnRight
+		ENDIF
+		
+		ETX 4800, cSIGNAL_IMAGE
+		GOSUB UartRx
+		
+		IF rx_data = cMOTION_MILK_FOUND THEN
+			GOTO StateSafeSectionCatchMilkInit
+		ELSE
+			walking_count = 8
+			GOSUB MotionTurnLeft
+			GOTO StateLinetracingToCornerInit
+		ENDIF
+	ENDIF
+	
+StateSafeSectionCatchMilkInit:
+    ETX 4800, cSIGNAL_STATE
+	
+StateSafeSectionCatchMilk:
+	ETX 4800, cSIGNAL_IMAGE
+	GOSUB UartRX
+	
+	IF rx_data = cMOTION_MILK_NOT_FOUND THEN
+		IF head_angle = 60 THEN
+			head_angle = 30
+			GOSUB PostureHeadDown
+		ELSE
+			GOTO StateSafeSectionDropMilkInit
+		ENDIF
+	ELSEIF rx_data = cMOTION_MILK_MOVE_FRONT THEN
+		walking_count = 2
+		GOSUB MotionWalkingFront
+	ELSEIF rx_data = cMOTION_MILK_MOVE_LEFT THEN
+		walking_count = 1
+		GOSUB MotionWalkingLeft
+	ELSEIF rx_data = cMOTION_MILK_MOVE_RIGHT THEN
+		walking_count = 1
+		GOSUB MotionWalkingRight
+	ENDIF
+	
+	GOTO StateSafeSectionCatchMilk
+	
+StateSafeSectionDropMilkInit:
+    ETX 4800, cSIGNAL_STATE
+    GOSUB MotionCatchMilk
+    
+    head_angle = 30
+    GOSUB PostureHeadDown
+
+StateSafeSectionDropMilk:
+	GOTO StateCombackLineInit
+
+StateDangerSectionFindMilkInit:
+    ETX 4800, cSIGNAL_STATE
+    walking_count = 3
+    IF clockwise = 1 THEN
+    	GOSUB MotionTurnLeft
+    ELSE
+    	GOSUB MotionTurnRight
+    ENDIF
+	
+	head_angle = 60
+	GOSUB PostureHeadDown
+    
+	head_angle = 90
+	GOSUB PostureHeadTurn
+
+StateDangerSectionFindMilk:
+	ETX 4800, cSIGNAL_IMAGE
+	GOSUB UartRx
+	
+	IF rx_data = cMOTION_MILK_NOT_FOUND THEN
+		IF head_angle = 90 THEN
+			head_angle = 110
+			GOSUB PostureHeadTurn
+			GOTO StateDangerSectionFindMilk
+		ELSE
+			walking_count = 6
+			IF clockwise = 1 THEN
+				GOSUB MotionTurnRight
+			ELSE
+				GOSUB MotionTurnLeft
+			ENDIF
+			GOTO StateLinetracingToCornerInit
+		ENDIF
+	ELSE
+		GOTO StateDangerSectionCatchMilkInit
+	ENDIF
+	
+StateDangerSectionCatchMilkInit:
+    ETX 4800, cSIGNAL_STATE
+
+StateDangerSectionCatchMilk:
+	ETX 4800, cSIGNAL_IMAGE
+	GOSUB UartRx
+	
+	IF rx_data = cMOTION_MILK_NOT_FOUND THEN
+		IF head_angle = 60 THEN
+			head_angle = 30
+			GOSUB PostureHeadDown
+		ELSE
+			GOTO StateDangerSectionDropMilkInit
+		ENDIF
+	ELSEIF rx_data = cMOTION_MILK_MOVE_FRONT THEN
+		walking_count = 2
+		GOSUB MotionWalkingFront
+	ELSEIF rx_data = cMOTION_MILK_MOVE_LEFT THEN
+		walking_count = 1
+		GOSUB MotionWalkingLeft
+	ELSEIF rx_data = cMOTION_MILK_MOVE_RIGHT THEN
+		walking_count = 1
+		GOSUB MotionWalkingRight
+	ENDIF
+	
+	GOTO StateDangerSectionCatchMilk
+	
+StateDangerSectionDropMilkInit:
+    ETX 4800, cSIGNAL_STATE
+    GOSUB MotionCatchMilk
+    
+    head_angle = 30
+    GOSUB PostureHeadDown
+    
+
+StateDangerSectionDropMilk:
+	GOTO StateDangerSectionDropMilk
+
+StateCombackLineInit:
+    ETX 4800, cSIGNAL_STATE
+	
+StateCombackLine:
+	'GOTO
 
     '********** State End **********'
-
+    
 
     '********** Main Begin **********'
 Main:

@@ -15,7 +15,7 @@ def calculate_distance(point1, point2):
 
 
 def detect_corner(line_list):
-    if len(line_list) >= 2:
+    if line_list is not None and len(line_list) >= 2:
         x1_start, y1_start, x1_end, y1_end, angle1, x1_pos = line_list[0]
         x2_start, y2_start, x2_end, y2_end, angle2, x2_pos = line_list[1]
         m1, m2 = np.tan(angle1), np.tan(angle2)
@@ -54,7 +54,7 @@ class LineTracing:
         self.prev_motion = 0
 
     def find_main_line_index(self, line_list):
-        if len(line_list):
+        if line_list is not None and len(line_list):
             line_array = np.asarray(line_list)[:, 4]
             line_array = abs(line_array - self.prev_angle)
             line_array = np.where(line_array >= np.pi / 2, abs(line_array - np.pi), line_array)
@@ -154,8 +154,11 @@ class LineTracing:
         return ret_list
 
     def detect_line(self, img_src):
-        img_threshold = cv2.threshold(cv2.split(cv2.cvtColor(img_src, cv2.COLOR_BGR2HSV))[1],
-                                      0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+        threshold_value, img_threshold = cv2.threshold(cv2.split(cv2.cvtColor(img_src, cv2.COLOR_BGR2HSV))[1],
+                                                       0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        if threshold_value < 20:
+            return None
+
         img_threshold = cv2.erode(img_threshold, self.cross_kernel, iterations=5)
         img_skeleton = np.zeros(img_threshold.shape, np.uint8)
 
