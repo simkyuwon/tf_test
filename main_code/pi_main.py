@@ -6,8 +6,8 @@ from const_variables import const
 
 
 def tx_data(ser, send_data):
+    print(f'tx : {hex(send_data)}')
     send_data = int(send_data).to_bytes(1, 'big')
-    print(f'tx : {send_data}')
     ser.write(send_data)
 
 
@@ -61,9 +61,9 @@ if __name__ == '__main__':
 
         print(robot_state_controller)
         if serial_data == const.SIGNAL_IMAGE:
+            ftp.store_image(frame)
             tx_data(serial_port, robot_state_controller.operation(cv2.GaussianBlur(frame, (3, 3), 0)))
             # cv2.imshow('frame', frame)
-            ftp.store_image(frame)
         elif serial_data == const.SIGNAL_STATE:
             robot_state_controller.state_change()
     cap.release()

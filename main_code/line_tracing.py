@@ -29,13 +29,13 @@ def detect_corner(line_list):
 
 
 def is_cross(line_list, corner_point):
-    if len(line_list) <= 1:
+    if (line_list is None) or (len(line_list) <= 1):
         return False
 
     for line in line_list:
         x_start, y_start, x_end, y_end, angle, x_pos = line
-        if calculate_distance((x_start, y_start), corner_point) > 100 and \
-                calculate_distance((x_end, y_end), corner_point) > 100:
+        if calculate_distance((x_start, y_start), corner_point) > 400 and \
+                calculate_distance((x_end, y_end), corner_point) > 400:
             return True
     return False
 
@@ -43,15 +43,20 @@ def is_cross(line_list, corner_point):
 class LineTracing:
     cross_kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
 
-    def __init__(self, height=240, width=320):
-        self.img_height = height
-        self.img_width = width
-        self.height_range = range(height)
-        self.width_range = range(width)
+    def __init__(self):
+        self.img_height = const.HEIGHT_SIZE
+        self.img_width = const.WIDTH_SIZE
 
         self.prev_angle = np.pi / 2
-        self.prev_x = width / 2
+        self.prev_x = const.WIDTH_SIZE / 2
         self.prev_motion = 0
+        self.cross_check = 0
+
+    def init(self):
+        self.prev_angle = np.pi / 2
+        self.prev_x = const.WIDTH_SIZE / 2
+        self.prev_motion = 0
+        self.cross_check = 0
 
     def find_main_line_index(self, line_list):
         if line_list is not None and len(line_list):
@@ -88,34 +93,44 @@ class LineTracing:
                 ret_value = const.MOTION_LINE_TURN_RIGHT_SMALL
             elif 0 <= angle <= np.pi * 75 / 180:
                 ret_value = const.MOTION_LINE_TURN_LEFT_SMALL
-            elif x_pos < self.img_width * 0.4:
+            elif x_pos < self.img_width * 0.35:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x_pos > self.img_width * 0.6:
+            elif x_pos > self.img_width * 0.65:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
             self.prev_angle, self.prev_x = angle, x_pos
         self.prev_motion = ret_value
         return ret_value
 
     def select_corner_motion(self, line_list):
-        ret_value = const.MOTION_LINE_STOP
+        ret_value = self.select_line_motion(line_list)
         corner_point = detect_corner(line_list)
-        if not corner_point or is_cross(line_list, corner_point):
-            ret_value = self.select_line_motion(line_list)
+
+        if (corner_point is None) or is_cross(line_list, corner_point):
+            self.cross_check = 0
+        else:
+            self.cross_check += 1
+
+        if (not corner_point) or (self.cross_check <= 1):
             if ret_value == const.MOTION_LINE_LOST:
                 ret_value = const.MOTION_LINE_STOP
         else:
-            x, y = corner_point
-            if x < self.img_width * 0.35:
-                ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x > self.img_width * 0.65:
-                ret_value = const.MOTION_LINE_MOVE_RIGHT
-            elif y < self.img_height * 0.6:
-                ret_value = const.MOTION_LINE_MOVE_FRONT
+            if ret_value == const.MOTION_LINE_TURN_RIGHT_SMALL or ret_value == const.MOTION_LINE_TURN_LEFT_SMALL:
+                pass
+            else:
+                ret_value = const.MOTION_LINE_STOP
+                x, y = corner_point
+                if x < self.img_width * 0.35:
+                    ret_value = const.MOTION_LINE_MOVE_LEFT
+                elif x > self.img_width * 0.65:
+                    ret_value = const.MOTION_LINE_MOVE_RIGHT
+                elif y < self.img_height * 0.6:
+                    ret_value = const.MOTION_LINE_MOVE_FRONT
         return ret_value
 
     def select_cross_motion(self, line_list):
         ret_value = const.MOTION_LINE_STOP
         corner_point = detect_corner(line_list)
+
         if (not corner_point) or (not is_cross(line_list, corner_point)):
             ret_value = self.select_line_motion(line_list)
             if ret_value == const.MOTION_LINE_LOST:
@@ -156,7 +171,7 @@ class LineTracing:
     def detect_line(self, img_src):
         threshold_value, img_threshold = cv2.threshold(cv2.split(cv2.cvtColor(img_src, cv2.COLOR_BGR2HSV))[1],
                                                        0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        if threshold_value < 20:
+        if threshold_value < 15:
             return None
 
         img_threshold = cv2.erode(img_threshold, self.cross_kernel, iterations=5)

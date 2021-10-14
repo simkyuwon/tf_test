@@ -149,6 +149,7 @@ class SafeSectionFind(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
         self.safe_section_find = section_mission.SectionFind("SAFE")
+        self.ret_val = None
 
     def __str__(self):
         return "find the milk carton outside Safe Section"
@@ -158,6 +159,7 @@ class SafeSectionFind(RobotStateBase):
 
     def set_section_color(self, color):
         self.safe_section_find.set_section_color(color)
+        self.next_state[1].set_section_color(color)
 
     def operation(self, source_image):
         self.ret_val = self.safe_section_find.find_milk_carton(source_image)
@@ -171,6 +173,7 @@ class DangerSectionFind(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
         self.danger_section_find = section_mission.SectionFind("DANGER")
+        self.ret_val = None
 
     def __str__(self):
         return "find the milk carton inside Danger Section"
@@ -180,6 +183,7 @@ class DangerSectionFind(RobotStateBase):
 
     def set_section_color(self, color):
         self.danger_section_find.set_section_color(color)
+        self.next_state[1].set_section_color(color)
 
     def operation(self, source_image):
         self.ret_val = self.danger_section_find.find_milk_carton(source_image)
@@ -192,26 +196,64 @@ class DangerSectionFind(RobotStateBase):
 class SafeSectionCatch(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
+        self.safe_section_catch = section_mission.SectionCatch("SAFE")
 
     def __str__(self):
         return "catch the milk carton outside Safe Section"
 
+    def set_section_color(self, color):
+        self.safe_section_catch.set_section_color(color)
+
     def operation(self, source_image):
-        pass
+        return self.safe_section_catch.select_motion(source_image)
 
     def state_change(self):
         return self.next_state
 
 
-class SafeSectionDrop(RobotStateBase):
+class DangerSectionCatch(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
+        self.danger_section_catch = section_mission.SectionCatch("DANGER")
 
     def __str__(self):
-        return "drop the milk carton inside Safe Section"
+        return "catch the milk carton inside Danger Section"
+
+    def set_section_color(self, color):
+        self.danger_section_catch.set_section_color(color)
 
     def operation(self, source_image):
-        pass
+        return self.danger_section_catch.select_motion(source_image)
+
+    def state_change(self):
+        return self.next_state
+
+
+class SafeSectionPut(RobotStateBase):
+    def __init__(self, next_state):
+        super().__init__(next_state)
+        self.safe_section_put = section_mission.SectionPut("SAFE")
+
+    def __str__(self):
+        return "put the milk carton inside Safe Section"
+
+    def operation(self, source_image):
+        return self.safe_section_put.check_ground(source_image)
+
+    def state_change(self):
+        return self.next_state
+
+
+class DangerSectionPut(RobotStateBase):
+    def __init__(self, next_state):
+        super().__init__(next_state)
+        self.danger_section_put = section_mission.SectionPut("DANGER")
+
+    def __str__(self):
+        return "put the milk carton outside Danger Section"
+
+    def operation(self, source_image):
+        return self.danger_section_put.check_ground(source_image)
 
     def state_change(self):
         return self.next_state
@@ -231,34 +273,7 @@ class SafeSectionComeback(RobotStateBase):
         self.next_state = next_state
 
     def state_change(self):
-        pass
-
-
-class DangerSectionCatch(RobotStateBase):
-    def __init__(self, next_state):
-        super().__init__(next_state)
-
-    def __str__(self):
-        return "catch the milk carton inside Danger Section"
-
-    def operation(self, source_image):
-        pass
-
-    def state_change(self):
-        return self.next_state
-
-
-class DangerSectionDrop(RobotStateBase):
-    def __init__(self, next_state):
-        super().__init__(next_state)
-
-    def __str__(self):
-        return "drop the milk carton outside Danger Section"
-
-    def operation(self, source_image):
-        pass
-
-    def state_change(self):
+        self.next_state.line_tracing.init()
         return self.next_state
 
 
@@ -276,17 +291,18 @@ class DangerSectionComeback(RobotStateBase):
         pass
 
     def state_change(self):
-        pass
+        self.next_state.line_tracing.init()
+        return self.next_state
 
 
 class RobotStateController:
     def __init__(self):
         self.danger_section_comeback = DangerSectionComeback(None)
         self.safe_section_comeback = SafeSectionComeback(None)
-        self.danger_section_drop = DangerSectionDrop(self.safe_section_comeback)
-        self.safe_section_drop = SafeSectionDrop(self.safe_section_comeback)
-        self.danger_section_catch = DangerSectionCatch(self.danger_section_drop)
-        self.safe_section_catch = SafeSectionCatch(self.safe_section_drop)
+        self.danger_section_put = DangerSectionPut(self.safe_section_comeback)
+        self.safe_section_put = SafeSectionPut(self.safe_section_comeback)
+        self.danger_section_catch = DangerSectionCatch(self.danger_section_put)
+        self.safe_section_catch = SafeSectionCatch(self.safe_section_put)
         self.danger_section_find = DangerSectionFind(None)
         self.safe_section_find = SafeSectionFind(None)
         self.section_recognition = SectionRecognition([self.safe_section_find, self.danger_section_find], self)
@@ -301,7 +317,6 @@ class RobotStateController:
         self.safe_section_find.set_next_state([self.line_tracing_to_corner, self.safe_section_catch])
 
         self.state = DirectionRecognition(self.line_tracing_to_door)
-
         self.section_name = []
 
     def __str__(self):

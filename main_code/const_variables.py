@@ -20,8 +20,8 @@ const.FPS = 30
 const.RED_RANGE1 = [(0, 100, 50), (20, 255, 255)]
 const.RED_RANGE2 = [(160, 100, 50), (180, 255, 255)]
 const.GREEN_RANGE = [(40, 100, 50), (90, 255, 255)]
-const.BLUE_RANGE = [(100, 90, 50), (120, 255, 255)]
-const.WHITE_RANGE = [(0, 0, 140), (180, 40, 255)]
+const.BLUE_RANGE = [(100, 60, 40), (120, 255, 255)]
+const.WHITE_RANGE = [(0, 0, 160), (180, 40, 255)]
 
 const.SIGNAL_CHECK = 0x40
 const.SIGNAL_IMAGE = 0x41
@@ -63,3 +63,4 @@ const.MOTION_MILK_MOVE_FRONT = 0xC2
 const.MOTION_MILK_MOVE_LEFT = 0xC3
 const.MOTION_MILK_MOVE_RIGHT = 0xC4
 const.MOTION_MILK_IN_SECTION = 0xC5
+const.MOTION_MILK_OUT_SECTION = 0xC6
