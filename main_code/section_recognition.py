@@ -52,13 +52,12 @@ class SectionRecognition:
             if np.argmax(prediction) != 4 and np.max(prediction[:4]) > max_prediction_value:
                 max_prediction_value = np.max(prediction[:4])
                 ret_value = prediction, check_section_color(source_image[y0:y1, x0:x1])
-
         return ret_value
 
     def check_section_type(self, source_image):
         hsv_image = cv2.cvtColor(source_image[60:], cv2.COLOR_BGR2HSV)
         green_image = cv2.inRange(hsv_image, const.GREEN_RANGE[0], const.GREEN_RANGE[1])
-        if cv2.countNonZero(green_image) > 5000:
+        if cv2.countNonZero(green_image) > 2000:
             return const.MOTION_SECTION_SAFE
         else:
             return const.MOTION_SECTION_DANGER

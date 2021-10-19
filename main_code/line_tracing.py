@@ -93,12 +93,12 @@ class LineTracing:
                 ret_value = const.MOTION_LINE_TURN_RIGHT_SMALL
             elif 0 <= angle <= np.pi * 75 / 180:
                 ret_value = const.MOTION_LINE_TURN_LEFT_SMALL
-            elif x_pos < self.img_width * 0.35:
+            elif x_pos < self.img_width * 0.4:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x_pos > self.img_width * 0.65:
+            elif x_pos > self.img_width * 0.6:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
             self.prev_angle, self.prev_x = angle, x_pos
-        self.prev_motion = ret_value
+            self.prev_motion = ret_value
         return ret_value
 
     def select_corner_motion(self, line_list):
@@ -110,13 +110,10 @@ class LineTracing:
         else:
             self.cross_check += 1
 
-        if (not corner_point) or (self.cross_check <= 1):
-            if ret_value == const.MOTION_LINE_LOST:
-                ret_value = const.MOTION_LINE_STOP
-        else:
-            if ret_value == const.MOTION_LINE_TURN_RIGHT_SMALL or ret_value == const.MOTION_LINE_TURN_LEFT_SMALL:
-                pass
-            else:
+        if ret_value == const.MOTION_LINE_TURN_LEFT_SMALL or ret_value == const.MOTION_LINE_TURN_RIGHT_SMALL:
+            pass
+        elif corner_point is not None:
+            if self.cross_check > 2:
                 ret_value = const.MOTION_LINE_STOP
                 x, y = corner_point
                 if x < self.img_width * 0.35:
@@ -125,17 +122,22 @@ class LineTracing:
                     ret_value = const.MOTION_LINE_MOVE_RIGHT
                 elif y < self.img_height * 0.6:
                     ret_value = const.MOTION_LINE_MOVE_FRONT
+
+        if ret_value == const.MOTION_LINE_LOST:
+            ret_value = const.MOTION_LINE_STOP
+
         return ret_value
 
     def select_cross_motion(self, line_list):
-        ret_value = const.MOTION_LINE_STOP
         corner_point = detect_corner(line_list)
-
-        if (not corner_point) or (not is_cross(line_list, corner_point)):
-            ret_value = self.select_line_motion(line_list)
+        ret_value = self.select_line_motion(line_list)
+        if ret_value == const.MOTION_LINE_TURN_RIGHT_SMALL or ret_value == const.MOTION_LINE_TURN_LEFT_SMALL:
+            pass
+        elif not corner_point:
             if ret_value == const.MOTION_LINE_LOST:
                 ret_value = const.MOTION_LINE_STOP
         else:
+            ret_value = const.MOTION_LINE_STOP
             x, y = corner_point
             if x < self.img_width * 0.3:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
@@ -146,16 +148,23 @@ class LineTracing:
         return ret_value
 
     def merge_line(self, line_list):
+        if line_list is None:
+            return None
         ret_list = []
         line_list.sort()
+
         while len(line_list):
             x1_start, y1_start, x1_end, y1_end, angle1, __ = line_list[0]
             merge_list = [0]
             for index2, line2 in enumerate(line_list[1:], 1):
                 x2_start, y2_start, x2_end, y2_end, angle2, __ = line2
-                if abs(angle1 - angle2) < np.pi / 6:
+                if abs(angle1 - angle2) < np.pi / 4:
                     if calculate_distance((x1_end, y1_end), (x2_start, y2_start)) < 500:
                         x1_end, y1_end = x2_end, y2_end
+                        angle1 = calculate_angle(x1_end - x1_start, y1_end - y1_start)
+                        merge_list.append(index2)
+                    elif calculate_distance((x1_start, y1_start), (x2_end, y2_end)) < 500:
+                        x1_start, y1_start = x2_start, y2_start
                         angle1 = calculate_angle(x1_end - x1_start, y1_end - y1_start)
                         merge_list.append(index2)
             if angle1 == 0:
@@ -166,38 +175,51 @@ class LineTracing:
             merge_list.reverse()
             for index in merge_list:
                 del line_list[index]
+
         return ret_list
 
-    def detect_line(self, img_src):
-        threshold_value, img_threshold = cv2.threshold(cv2.split(cv2.cvtColor(img_src, cv2.COLOR_BGR2HSV))[1],
-                                                       0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    def skeletonization(self, source_image):
+        threshold_value, threshold_image = cv2.threshold(cv2.split(cv2.cvtColor(source_image, cv2.COLOR_BGR2HSV))[1],
+                                                         0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         if threshold_value < 15:
             return None
 
-        img_threshold = cv2.erode(img_threshold, self.cross_kernel, iterations=5)
-        img_skeleton = np.zeros(img_threshold.shape, np.uint8)
+        threshold_image = cv2.erode(threshold_image, self.cross_kernel, iterations=3)
+        skeleton_image = np.zeros(threshold_image.shape, np.uint8)
 
         while True:
-            eroded = cv2.erode(img_threshold, self.cross_kernel, borderType=cv2.BORDER_REPLICATE)
-            subtracted = cv2.bitwise_xor(img_threshold, cv2.dilate(eroded, self.cross_kernel))
-            img_skeleton = cv2.bitwise_or(img_skeleton, subtracted)
-            if not cv2.countNonZero(img_threshold):
+            eroded = cv2.erode(threshold_image, self.cross_kernel, borderType=cv2.BORDER_REPLICATE)
+            subtracted = cv2.bitwise_xor(threshold_image, cv2.dilate(eroded, self.cross_kernel))
+            skeleton_image = cv2.bitwise_or(skeleton_image, subtracted)
+            if not cv2.countNonZero(threshold_image):
                 break
-            img_threshold = eroded.copy()
+            threshold_image = eroded.copy()
 
-        img_skeleton = cv2.dilate(img_skeleton, self.cross_kernel, borderType=cv2.BORDER_CONSTANT, borderValue=0)
+        return cv2.dilate(skeleton_image, self.cross_kernel, borderType=cv2.BORDER_CONSTANT, borderValue=0)
 
-        corner_array = np.asarray(np.where(cv2.cornerHarris(img_skeleton, 3, 5, 0.1) > 0.5, 0, 255), dtype=np.uint8)
-        corner_array = cv2.erode(corner_array, self.cross_kernel, iterations=3)
-        img_skeleton = cv2.bitwise_and(img_skeleton, corner_array)
+    def detect_outline(self, source_image, section_type):
+        hsv_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2HSV)
+        if section_type == "SAFE":
+            section_image = cv2.inRange(hsv_image, const.GREEN_RANGE[0], const.GREEN_RANGE[1])
+        else:
+            section_image = cv2.inRange(hsv_image, const.BLACK_RANGE[0], const.BLACK_RANGE[1])
+        section_image = cv2.morphologyEx(section_image, cv2.MORPH_GRADIENT, self.cross_kernel, iterations=2)
+        ground_image = cv2.morphologyEx(cv2.inRange(hsv_image, const.WHITE_RANGE[0], const.WHITE_RANGE[1]),
+                                        cv2.MORPH_GRADIENT, self.cross_kernel, iterations=2)
+        return cv2.morphologyEx(cv2.bitwise_and(section_image, ground_image), cv2.MORPH_DILATE, self.cross_kernel)
 
-        img_labeling, stats = cv2.connectedComponentsWithStats(img_skeleton, connectivity=4)[1:3]
+    def detect_line(self, binary_image):
+        corner_array = np.asarray(np.where(cv2.cornerHarris(binary_image, 3, 5, 0.1) > 0.5, 0, 255), dtype=np.uint8)
+        corner_array = cv2.erode(corner_array, self.cross_kernel, iterations=4)
+        binary_image = cv2.bitwise_and(binary_image, corner_array)
+
+        labeling_image, stats = cv2.connectedComponentsWithStats(binary_image, connectivity=4)[1:3]
 
         line_list = []
-        label_max = np.max(img_labeling)
+        label_max = np.max(labeling_image)
         for label in range(1, label_max + 1):
-            pixel_list = np.argwhere(img_labeling == label)
-            if len(pixel_list) > 300:
+            pixel_list = np.argwhere(labeling_image == label)
+            if len(pixel_list) > 200:
                 pixel_list = np.asarray(pixel_list, dtype=np.float64)
                 x_array = np.reshape(pixel_list[:, 1], -1)
                 y_array = np.reshape(pixel_list[:, 0], -1)
