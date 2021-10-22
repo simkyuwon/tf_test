@@ -35,13 +35,13 @@ class SectionRecognition:
             np.asarray(cv2.split(hsv_image)[1]), 80, 255, cv2.THRESH_BINARY)[1])[2]
 
         stats_swap = stats.swapaxes(0, 1)
-        stats = stats[np.where((stats_swap[4] > 200) & (stats_swap[4] < 1500))]
+        stats = stats[np.where((stats_swap[4] > 200) & (stats_swap[4] < 2000))]
 
-        max_prediction_value = 0.5
+        max_prediction_value = 0.0
         ret_value = [np.zeros(5), ""]
         for stat in stats:
-            x0, y0 = max(0, stat[0] - 5), max(0, stat[1] - 5 + 40)
-            x1, y1 = min(const.WIDTH_SIZE, stat[0] + stat[2] + 5), min(const.HEIGHT_SIZE, stat[1] + stat[3] + 5 + 40)
+            x0, y0 = max(0, stat[0] - 4), max(0, stat[1] - 4 + 40)
+            x1, y1 = min(const.WIDTH_SIZE, stat[0] + stat[2] + 4), min(const.HEIGHT_SIZE, stat[1] + stat[3] + 4 + 40)
 
             image_array = np.asarray(cv2.resize(rgb_image[y0:y1, x0:x1], (64, 64)), dtype=np.float32)
             image_array = np.expand_dims(image_array, axis=0)

@@ -29,7 +29,7 @@ def detect_corner(line_list):
 
 
 def is_cross(line_list, corner_point):
-    if (line_list is None) or (len(line_list) <= 1):
+    if (line_list is None) or (corner_point is None) or (len(line_list) <= 1):
         return False
 
     for line in line_list:
@@ -43,20 +43,20 @@ def is_cross(line_list, corner_point):
 class LineTracing:
     cross_kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
 
-    def __init__(self):
-        self.img_height = const.HEIGHT_SIZE
-        self.img_width = const.WIDTH_SIZE
+    def __init__(self, width_size=const.WIDTH_SIZE, height_size=const.HEIGHT_SIZE):
+        self.img_height = height_size
+        self.img_width = width_size
 
         self.prev_angle = np.pi / 2
-        self.prev_x = const.WIDTH_SIZE / 2
+        self.prev_x = self.img_width / 2
         self.prev_motion = 0
-        self.cross_check = 0
+        self.corner_check = 0
 
     def init(self):
         self.prev_angle = np.pi / 2
-        self.prev_x = const.WIDTH_SIZE / 2
+        self.prev_x = self.img_width / 2
         self.prev_motion = 0
-        self.cross_check = 0
+        self.corner_check = 0
 
     def find_main_line_index(self, line_list):
         if line_list is not None and len(line_list):
@@ -105,23 +105,24 @@ class LineTracing:
         ret_value = self.select_line_motion(line_list)
         corner_point = detect_corner(line_list)
 
-        if (corner_point is None) or is_cross(line_list, corner_point):
-            self.cross_check = 0
-        else:
-            self.cross_check += 1
+        if corner_point is not None:
+            if is_cross(line_list, corner_point):
+                self.corner_check = 0
+            elif self.corner_check <= 1:
+                self.corner_check += 1
+                return const.MOTION_LINE_MOVE_FRONT_SMALL
 
         if ret_value == const.MOTION_LINE_TURN_LEFT_SMALL or ret_value == const.MOTION_LINE_TURN_RIGHT_SMALL:
             pass
-        elif corner_point is not None:
-            if self.cross_check > 2:
-                ret_value = const.MOTION_LINE_STOP
-                x, y = corner_point
-                if x < self.img_width * 0.35:
-                    ret_value = const.MOTION_LINE_MOVE_LEFT
-                elif x > self.img_width * 0.65:
-                    ret_value = const.MOTION_LINE_MOVE_RIGHT
-                elif y < self.img_height * 0.6:
-                    ret_value = const.MOTION_LINE_MOVE_FRONT
+        elif (corner_point is not None) and (self.corner_check > 1):
+            ret_value = const.MOTION_LINE_STOP
+            x, y = corner_point
+            if x < self.img_width * 0.4:
+                ret_value = const.MOTION_LINE_MOVE_LEFT
+            elif x > self.img_width * 0.6:
+                ret_value = const.MOTION_LINE_MOVE_RIGHT
+            elif y < self.img_height * 0.4:
+                ret_value = const.MOTION_LINE_MOVE_FRONT_SMALL
 
         if ret_value == const.MOTION_LINE_LOST:
             ret_value = const.MOTION_LINE_STOP
@@ -139,12 +140,12 @@ class LineTracing:
         else:
             ret_value = const.MOTION_LINE_STOP
             x, y = corner_point
-            if x < self.img_width * 0.3:
+            if x < self.img_width * 0.35:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x > self.img_width * 0.7:
+            elif x > self.img_width * 0.65:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
-            elif y < self.img_height * 0.4:
-                ret_value = const.MOTION_LINE_MOVE_FRONT
+            elif y < self.img_height * 0.45:
+                ret_value = const.MOTION_LINE_MOVE_FRONT_SMALL
         return ret_value
 
     def merge_line(self, line_list):
@@ -181,8 +182,8 @@ class LineTracing:
     def skeletonization(self, source_image):
         threshold_value, threshold_image = cv2.threshold(cv2.split(cv2.cvtColor(source_image, cv2.COLOR_BGR2HSV))[1],
                                                          0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        if threshold_value < 15:
-            return None
+        if threshold_value < 10:
+            return np.zeros(threshold_image.shape, dtype=np.uint8)
 
         threshold_image = cv2.erode(threshold_image, self.cross_kernel, iterations=3)
         skeleton_image = np.zeros(threshold_image.shape, np.uint8)
@@ -219,7 +220,7 @@ class LineTracing:
         label_max = np.max(labeling_image)
         for label in range(1, label_max + 1):
             pixel_list = np.argwhere(labeling_image == label)
-            if len(pixel_list) > 200:
+            if len(pixel_list) > 100:
                 pixel_list = np.asarray(pixel_list, dtype=np.float64)
                 x_array = np.reshape(pixel_list[:, 1], -1)
                 y_array = np.reshape(pixel_list[:, 0], -1)

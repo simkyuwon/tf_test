@@ -17,10 +17,10 @@ const.HEIGHT_SIZE = 240
 const.WIDTH_SIZE = 320
 const.FPS = 30
 
-const.RED_RANGE1 = [(0, 100, 50), (20, 255, 255)]
-const.RED_RANGE2 = [(160, 100, 50), (180, 255, 255)]
-const.GREEN_RANGE = [(40, 100, 50), (90, 255, 255)]
-const.BLUE_RANGE = [(100, 60, 40), (120, 255, 255)]
+const.RED_RANGE1 = [(0, 90, 50), (20, 255, 255)]
+const.RED_RANGE2 = [(160, 90, 50), (180, 255, 255)]
+const.GREEN_RANGE = [(40, 90, 50), (90, 255, 255)]
+const.BLUE_RANGE = [(100, 60, 50), (120, 255, 255)]
 const.WHITE_RANGE = [(0, 0, 130), (180, 60, 255)]
 const.BLACK_RANGE = [(0, 0, 0), (180, 50, 100)]
 
@@ -29,7 +29,7 @@ const.SIGNAL_IMAGE = 0x41
 const.SIGNAL_STATE = 0x42
 
 const.MOTION_LINE_MOVE_FRONT = 0x80
-const.MOTION_LINE_MOVE_BACK = 0x81
+const.MOTION_LINE_MOVE_FRONT_SMALL = 0x81
 const.MOTION_LINE_MOVE_LEFT = 0x82
 const.MOTION_LINE_MOVE_RIGHT = 0x83
 const.MOTION_LINE_TURN_LEFT_SMALL = 0x84

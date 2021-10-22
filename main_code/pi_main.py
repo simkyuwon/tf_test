@@ -3,10 +3,18 @@ import serial
 import capture
 import image_processing
 from const_variables import const
+import datetime
+
+log_file = open(f'log.txt', 'w')
+
+
+def print_log(text):
+    print(text)
+    log_file.write(f"{datetime.datetime.now().strftime('%H-%M-%S.%f')} / {text}\n")
 
 
 def tx_data(ser, send_data):
-    print(f'tx : {hex(send_data)}')
+    print_log(f'tx : {hex(send_data)}')
     send_data = int(send_data).to_bytes(1, 'big')
     ser.write(send_data)
 
@@ -15,7 +23,7 @@ def rx_data(ser):
     if ser.inWaiting() > 0:
         receive = ser.read()
         ser.flush()
-        print(f'rx : {receive}')
+        print_log(f'rx : {receive}')
         return receive
     else:
         return None
@@ -42,7 +50,7 @@ if __name__ == '__main__':
         if rx_data(serial_port) is not None:
             break
     tx_data(serial_port, const.SIGNAL_CHECK)
-    print("통신 시작\n")
+    print_log("통신 시작")
 
     frame = None
     while True:
@@ -59,11 +67,10 @@ if __name__ == '__main__':
         if cv2.waitKey(10) == 27:
             break
 
-        print(robot_state_controller)
         if serial_data == const.SIGNAL_IMAGE:
             ftp.store_image(frame)
             tx_data(serial_port, robot_state_controller.operation(cv2.GaussianBlur(frame, (3, 3), 0)))
-            # cv2.imshow('frame', frame)
         elif serial_data == const.SIGNAL_STATE:
             robot_state_controller.state_change()
+        print_log(robot_state_controller)
     cap.release()

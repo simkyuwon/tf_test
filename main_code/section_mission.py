@@ -9,9 +9,7 @@ def find_milk_carton(hsv_image, milk_carton_color):
                                            cv2.inRange(hsv_image, const.RED_RANGE2[0], const.RED_RANGE2[1]))
     else:
         milk_carton_image = cv2.inRange(hsv_image, const.BLUE_RANGE[0], const.BLUE_RANGE[1])
-
     stats = cv2.connectedComponentsWithStats(milk_carton_image)[2]
-
     if len(stats) < 2:
         return None
 
@@ -86,6 +84,3 @@ class SectionPut:
         hsv_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2HSV)
         return const.MOTION_MILK_IN_SECTION if in_section(hsv_image[80:-80, 80:-80]) else const.MOTION_MILK_OUT_SECTION
 
-
-class SectionComeback:
-    pass
