@@ -46,29 +46,13 @@ class DirectionRecognition(RobotStateBase):
         return self.next_state
 
 
-class LineTracingToDoor(RobotStateBase):
+class LineTracingToArrow(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
         self.line_tracing = line_tracing.LineTracing()
 
     def __str__(self):
-        return "LineTracing to Door"
-
-    def operation(self, source_image):
-        return self.line_tracing.select_line_motion(
-            self.line_tracing.detect_line(self.line_tracing.skeletonization(source_image)))
-
-    def state_change(self):
-        return self.next_state
-
-
-class FindCross(RobotStateBase):
-    def __init__(self, next_state):
-        super().__init__(next_state)
-        self.line_tracing = line_tracing.LineTracing()
-
-    def __str__(self):
-        return "Find Cross"
+        return "Line Tracing to Arrow"
 
     def operation(self, source_image):
         return self.line_tracing.select_cross_motion(
@@ -384,16 +368,14 @@ class RobotStateController:
         self.section_recognition = SectionRecognition([self.safe_section_find, self.danger_section_find], self)
         self.line_tracing_to_corner = LineTracingToCorner([self.section_recognition, self.line_tracing_to_cross])
         self.arrow_recognition = ArrowRecognition(self.line_tracing_to_corner)
-        self.find_cross = FindCross(self.arrow_recognition)
-        # self.line_tracing_to_door = LineTracingToDoor(self.find_cross)
+        self.line_tracing_to_arrow = LineTracingToArrow(self.arrow_recognition)
 
         self.danger_section_comeback.set_next_state(self.line_tracing_to_corner)
         self.safe_section_comeback.set_next_state(self.line_tracing_to_corner)
         self.danger_section_find.set_next_state([self.line_tracing_to_corner, self.danger_section_catch])
         self.safe_section_find.set_next_state([self.line_tracing_to_corner, self.safe_section_catch])
 
-        # self.state = DirectionRecognition(self.line_tracing_to_door)
-        self.state = DirectionRecognition(self.find_cross)
+        self.state = DirectionRecognition(self.line_tracing_to_arrow)
         self.section_name = []
 
     def __str__(self):

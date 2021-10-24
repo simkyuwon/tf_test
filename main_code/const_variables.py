@@ -19,10 +19,10 @@ const.FPS = 30
 
 const.RED_RANGE1 = [(0, 90, 50), (20, 255, 255)]
 const.RED_RANGE2 = [(160, 90, 50), (180, 255, 255)]
-const.GREEN_RANGE = [(40, 90, 50), (90, 255, 255)]
+const.GREEN_RANGE = [(40, 80, 50), (90, 255, 255)]
 const.BLUE_RANGE = [(100, 60, 50), (120, 255, 255)]
 const.WHITE_RANGE = [(0, 0, 130), (180, 60, 255)]
-const.BLACK_RANGE = [(0, 0, 0), (180, 50, 100)]
+const.BLACK_RANGE = [(0, 0, 0), (180, 50, 60)]
 
 const.SIGNAL_CHECK = 0x40
 const.SIGNAL_IMAGE = 0x41

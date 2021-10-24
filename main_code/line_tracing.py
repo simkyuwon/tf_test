@@ -41,7 +41,7 @@ def is_cross(line_list, corner_point):
 
 
 class LineTracing:
-    cross_kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+    CROSS_KERNEL = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
 
     def __init__(self, width_size=const.WIDTH_SIZE, height_size=const.HEIGHT_SIZE):
         self.img_height = height_size
@@ -117,11 +117,11 @@ class LineTracing:
         elif (corner_point is not None) and (self.corner_check > 1):
             ret_value = const.MOTION_LINE_STOP
             x, y = corner_point
-            if x < self.img_width * 0.4:
+            if x < self.img_width * 0.35:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x > self.img_width * 0.6:
+            elif x > self.img_width * 0.65:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
-            elif y < self.img_height * 0.4:
+            elif y < self.img_height * 0.5:
                 ret_value = const.MOTION_LINE_MOVE_FRONT_SMALL
 
         if ret_value == const.MOTION_LINE_LOST:
@@ -159,12 +159,15 @@ class LineTracing:
             merge_list = [0]
             for index2, line2 in enumerate(line_list[1:], 1):
                 x2_start, y2_start, x2_end, y2_end, angle2, __ = line2
-                if abs(angle1 - angle2) < np.pi / 4:
-                    if calculate_distance((x1_end, y1_end), (x2_start, y2_start)) < 500:
+                angle_diff = abs(angle1 - angle2)
+                if angle_diff > np.pi / 2:
+                    angle_diff = abs(np.pi - angle_diff)
+                if angle_diff < np.pi / 4:
+                    if calculate_distance((x1_end, y1_end), (x2_start, y2_start)) < 400:
                         x1_end, y1_end = x2_end, y2_end
                         angle1 = calculate_angle(x1_end - x1_start, y1_end - y1_start)
                         merge_list.append(index2)
-                    elif calculate_distance((x1_start, y1_start), (x2_end, y2_end)) < 500:
+                    elif calculate_distance((x1_start, y1_start), (x2_end, y2_end)) < 400:
                         x1_start, y1_start = x2_start, y2_start
                         angle1 = calculate_angle(x1_end - x1_start, y1_end - y1_start)
                         merge_list.append(index2)
@@ -182,36 +185,39 @@ class LineTracing:
     def skeletonization(self, source_image):
         threshold_value, threshold_image = cv2.threshold(cv2.split(cv2.cvtColor(source_image, cv2.COLOR_BGR2HSV))[1],
                                                          0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
         if threshold_value < 10:
             return np.zeros(threshold_image.shape, dtype=np.uint8)
 
-        threshold_image = cv2.erode(threshold_image, self.cross_kernel, iterations=3)
+        threshold_image = cv2.erode(threshold_image, self.CROSS_KERNEL, iterations=3)
         skeleton_image = np.zeros(threshold_image.shape, np.uint8)
 
         while True:
-            eroded = cv2.erode(threshold_image, self.cross_kernel, borderType=cv2.BORDER_REPLICATE)
-            subtracted = cv2.bitwise_xor(threshold_image, cv2.dilate(eroded, self.cross_kernel))
+            eroded = cv2.erode(threshold_image, self.CROSS_KERNEL, borderType=cv2.BORDER_REPLICATE)
+            subtracted = cv2.bitwise_xor(threshold_image, cv2.dilate(eroded, self.CROSS_KERNEL))
             skeleton_image = cv2.bitwise_or(skeleton_image, subtracted)
             if not cv2.countNonZero(threshold_image):
                 break
             threshold_image = eroded.copy()
 
-        return cv2.dilate(skeleton_image, self.cross_kernel, borderType=cv2.BORDER_CONSTANT, borderValue=0)
+        return cv2.dilate(skeleton_image, self.CROSS_KERNEL, borderType=cv2.BORDER_CONSTANT, borderValue=0)
 
     def detect_outline(self, source_image, section_type):
         hsv_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2HSV)
         if section_type == "SAFE":
             section_image = cv2.inRange(hsv_image, const.GREEN_RANGE[0], const.GREEN_RANGE[1])
         else:
-            section_image = cv2.inRange(hsv_image, const.BLACK_RANGE[0], const.BLACK_RANGE[1])
-        section_image = cv2.morphologyEx(section_image, cv2.MORPH_GRADIENT, self.cross_kernel, iterations=2)
+            gray_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2GRAY)
+            __, section_image = cv2.threshold(gray_image, 80, 255, cv2.THRESH_BINARY)
+            # section_image = cv2.inRange(hsv_image, const.BLACK_RANGE[0], const.BLACK_RANGE[1])
+        section_image = cv2.morphologyEx(section_image, cv2.MORPH_GRADIENT, self.CROSS_KERNEL, iterations=3)
         ground_image = cv2.morphologyEx(cv2.inRange(hsv_image, const.WHITE_RANGE[0], const.WHITE_RANGE[1]),
-                                        cv2.MORPH_GRADIENT, self.cross_kernel, iterations=2)
-        return cv2.morphologyEx(cv2.bitwise_and(section_image, ground_image), cv2.MORPH_DILATE, self.cross_kernel)
+                                        cv2.MORPH_GRADIENT, self.CROSS_KERNEL, iterations=2)
+        return cv2.morphologyEx(cv2.bitwise_and(section_image, ground_image), cv2.MORPH_CLOSE, self.CROSS_KERNEL)
 
     def detect_line(self, binary_image):
         corner_array = np.asarray(np.where(cv2.cornerHarris(binary_image, 3, 5, 0.1) > 0.5, 0, 255), dtype=np.uint8)
-        corner_array = cv2.erode(corner_array, self.cross_kernel, iterations=4)
+        corner_array = cv2.erode(corner_array, self.CROSS_KERNEL, iterations=5)
         binary_image = cv2.bitwise_and(binary_image, corner_array)
 
         labeling_image, stats = cv2.connectedComponentsWithStats(binary_image, connectivity=4)[1:3]
@@ -224,18 +230,17 @@ class LineTracing:
                 pixel_list = np.asarray(pixel_list, dtype=np.float64)
                 x_array = np.reshape(pixel_list[:, 1], -1)
                 y_array = np.reshape(pixel_list[:, 0], -1)
-                x_array = np.vstack([x_array, np.ones(x_array.shape[0])]).T
-                m, c = np.linalg.lstsq(x_array, y_array, rcond=-1)[0]  # y = mx + c
-
-                if m == 0:
-                    m = 0.0001
 
                 if stats[label][2] > stats[label][3]:
+                    x_array = np.vstack([x_array, np.ones(x_array.shape[0])]).T
+                    m, c = np.linalg.lstsq(x_array, y_array, rcond=-1)[0]  # y = mx + c
                     x_start, x_end = stats[label][0], stats[label][0] + stats[label][2]
                     y_start, y_end = m * x_start + c, m * x_end + c
                 else:
+                    y_array = np.vstack([y_array, np.ones(y_array.shape[0])]).T
+                    m, c = np.linalg.lstsq(y_array, x_array, rcond=-1)[0]  # x = my + c
                     y_start, y_end = stats[label][1], stats[label][1] + stats[label][3]
-                    x_start, x_end = (y_start - c) / m, (y_end - c) / m
+                    x_start, x_end = m * y_start + c, m * y_end + c
 
                 line_angle = calculate_angle(x_end - x_start, y_end - y_start)
                 line_list.append([x_start, y_start, x_end, y_end, line_angle, 0])
