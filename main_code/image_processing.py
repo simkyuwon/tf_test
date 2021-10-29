@@ -206,6 +206,7 @@ class SafeSectionCatch(RobotStateBase):
         return self.safe_section_catch.select_motion(source_image)
 
     def state_change(self):
+        self.next_state.line_tracing.init()
         return self.next_state
 
 
@@ -224,19 +225,22 @@ class DangerSectionCatch(RobotStateBase):
         return self.danger_section_catch.select_motion(source_image)
 
     def state_change(self):
+        self.next_state.line_tracing.init()
         return self.next_state
 
 
 class SafeSectionPut(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
-        self.safe_section_put = section_mission.SectionPut("SAFE")
+        self.line_tracing = line_tracing.LineTracing(height_size=const.HEIGHT_SIZE - 40,
+                                                     width_size=const.WIDTH_SIZE - 20)
 
     def __str__(self):
         return "put the milk carton inside Safe Section"
 
     def operation(self, source_image):
-        return self.safe_section_put.check_ground(source_image)
+        return self.line_tracing.select_section_motion(
+            self.line_tracing.detect_line(self.line_tracing.detect_outline(source_image[:-40, 10:-10], "SAFE")))
 
     def state_change(self):
         self.next_state.line_tracing.init()
@@ -246,13 +250,15 @@ class SafeSectionPut(RobotStateBase):
 class DangerSectionPut(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
-        self.danger_section_put = section_mission.SectionPut("DANGER")
+        self.line_tracing = line_tracing.LineTracing(height_size=const.HEIGHT_SIZE - 80,
+                                                     width_size=const.WIDTH_SIZE - 20)
 
     def __str__(self):
         return "put the milk carton outside Danger Section"
 
     def operation(self, source_image):
-        return self.danger_section_put.check_ground(source_image)
+        return self.line_tracing.select_section_motion(
+            self.line_tracing.detect_line(self.line_tracing.detect_outline(source_image[20:-60, 10:-10], "DANGER")))
 
     def state_change(self):
         self.next_state.line_tracing.init()
@@ -262,14 +268,14 @@ class DangerSectionPut(RobotStateBase):
 class SafeSectionComeback(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
-        self.line_tracing = line_tracing.LineTracing()
+        self.line_tracing = line_tracing.LineTracing(height_size=const.HEIGHT_SIZE - 60)
 
     def __str__(self):
         return "comeback from Safe Section to Line"
 
     def operation(self, source_image):
         return self.line_tracing.select_corner_motion(
-            self.line_tracing.detect_line(self.line_tracing.detect_outline(source_image, "SAFE")))
+            self.line_tracing.detect_line(self.line_tracing.detect_outline(source_image[20:-40], "SAFE")))
 
     def set_next_state(self, next_state):
         self.next_state = next_state
@@ -282,14 +288,14 @@ class SafeSectionComeback(RobotStateBase):
 class DangerSectionComeback(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
-        self.line_tracing = line_tracing.LineTracing(height_size=const.HEIGHT_SIZE - 20)
+        self.line_tracing = line_tracing.LineTracing(height_size=const.HEIGHT_SIZE - 40)
 
     def __str__(self):
         return "comeback from Danger Section to Line"
 
     def operation(self, source_image):
         return self.line_tracing.select_corner_motion(
-            self.line_tracing.detect_line(self.line_tracing.detect_outline(source_image[:-20], "DANGER")))
+            self.line_tracing.detect_line(self.line_tracing.detect_outline(source_image[:-40], "DANGER")))
 
     def set_next_state(self, next_state):
         self.next_state = next_state

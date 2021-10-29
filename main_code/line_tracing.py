@@ -121,11 +121,8 @@ class LineTracing:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
             elif x > self.img_width * 0.65:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
-            elif y < self.img_height * 0.5:
+            elif y < self.img_height * 0.45:
                 ret_value = const.MOTION_LINE_MOVE_FRONT_SMALL
-
-        if ret_value == const.MOTION_LINE_LOST:
-            ret_value = const.MOTION_LINE_STOP
 
         return ret_value
 
@@ -146,6 +143,24 @@ class LineTracing:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
             elif y < self.img_height * 0.45:
                 ret_value = const.MOTION_LINE_MOVE_FRONT_SMALL
+        return ret_value
+
+    def select_section_motion(self, line_list):
+        ret_value = self.select_line_motion(line_list)
+        corner_point = detect_corner(line_list)
+
+        if ret_value == const.MOTION_LINE_TURN_LEFT_SMALL or ret_value == const.MOTION_LINE_TURN_RIGHT_SMALL:
+            pass
+        elif corner_point is not None:
+            ret_value = const.MOTION_LINE_STOP
+            x, y = corner_point
+            if x < self.img_width * 0.3:
+                ret_value = const.MOTION_LINE_MOVE_LEFT
+            elif x > self.img_width * 0.6:
+                ret_value = const.MOTION_LINE_MOVE_RIGHT
+            elif y < self.img_height * 0.4:
+                ret_value = const.MOTION_LINE_MOVE_FRONT_SMALL
+
         return ret_value
 
     def merge_line(self, line_list):
@@ -183,9 +198,11 @@ class LineTracing:
         return ret_list
 
     def skeletonization(self, source_image):
-        threshold_value, threshold_image = cv2.threshold(cv2.split(cv2.cvtColor(source_image, cv2.COLOR_BGR2HSV))[1],
+        hsv_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2HSV)
+        safe_section_image = cv2.inRange(hsv_image, const.GREEN_RANGE[0], const.GREEN_RANGE[1])
+        threshold_value, threshold_image = cv2.threshold(cv2.split(hsv_image)[1],
                                                          0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
+        threshold_image = cv2.bitwise_and(threshold_image, cv2.bitwise_not(safe_section_image))
         if threshold_value < 10:
             return np.zeros(threshold_image.shape, dtype=np.uint8)
 
@@ -208,8 +225,7 @@ class LineTracing:
             section_image = cv2.inRange(hsv_image, const.GREEN_RANGE[0], const.GREEN_RANGE[1])
         else:
             gray_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2GRAY)
-            __, section_image = cv2.threshold(gray_image, 80, 255, cv2.THRESH_BINARY)
-            # section_image = cv2.inRange(hsv_image, const.BLACK_RANGE[0], const.BLACK_RANGE[1])
+            section_image = cv2.threshold(gray_image, 100, 255, cv2.THRESH_BINARY)[1]
         section_image = cv2.morphologyEx(section_image, cv2.MORPH_GRADIENT, self.CROSS_KERNEL, iterations=3)
         ground_image = cv2.morphologyEx(cv2.inRange(hsv_image, const.WHITE_RANGE[0], const.WHITE_RANGE[1]),
                                         cv2.MORPH_GRADIENT, self.CROSS_KERNEL, iterations=2)
