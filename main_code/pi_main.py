@@ -1,9 +1,9 @@
 import cv2
 import serial
-import capture
 import image_processing
 from const_variables import const
 import datetime
+import capture
 
 log_file = open(f'log.txt', 'w')
 
@@ -37,6 +37,7 @@ if __name__ == '__main__':
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, const.WIDTH_SIZE)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, const.HEIGHT_SIZE)
             cap.set(cv2.CAP_PROP_FPS, const.FPS)
+            cap.set(cv2.CAP_PROP_AUTO_WB, False)
             break
         except ConnectionError:
             print('cannot load camera!')

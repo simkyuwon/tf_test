@@ -39,10 +39,9 @@ class SectionFind:
         if stat is None:
             return const.MOTION_MILK_NOT_FOUND
 
-        point1 = (np.max([0, stat[0] - 10]), np.max([0, stat[1] - 10]))
+        point1 = (np.max([0, stat[0] - 10]), np.max([0, stat[1] + stat[3] // 2]))
         point2 = (np.min([const.WIDTH_SIZE, stat[0] + stat[2] + 10]),
                   np.min([const.HEIGHT_SIZE - 40, stat[1] + stat[3] + 10]))
-
         if in_section(hsv_image[point1[1]:point2[1], point1[0]:point2[0]]):
             return const.MOTION_MILK_FOUND if self.section_type == "DANGER" else const.MOTION_MILK_NOT_FOUND
         else:
@@ -70,17 +69,7 @@ class SectionCatch:
             return const.MOTION_MILK_MOVE_LEFT
         elif center_x > const.WIDTH_SIZE * 0.6:
             return const.MOTION_MILK_MOVE_RIGHT
-        elif center_y > const.HEIGHT_SIZE * 0.5:
+        elif center_y > const.HEIGHT_SIZE * 0.6:
             return const.MOTION_MILK_NOT_FOUND
         else:
             return const.MOTION_MILK_MOVE_FRONT
-
-
-class SectionPut:
-    def __init__(self, section_type):
-        self.section_type = section_type
-
-    def check_ground(self, source_image):
-        hsv_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2HSV)
-        return const.MOTION_MILK_IN_SECTION if in_section(hsv_image[80:-80, 80:-80]) else const.MOTION_MILK_OUT_SECTION
-

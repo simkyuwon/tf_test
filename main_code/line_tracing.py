@@ -117,9 +117,9 @@ class LineTracing:
         elif (corner_point is not None) and (self.corner_check > 1):
             ret_value = const.MOTION_LINE_STOP
             x, y = corner_point
-            if x < self.img_width * 0.35:
+            if x < self.img_width * 0.3:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x > self.img_width * 0.65:
+            elif x > self.img_width * 0.7:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
             elif y < self.img_height * 0.45:
                 ret_value = const.MOTION_LINE_MOVE_FRONT_SMALL
@@ -141,7 +141,7 @@ class LineTracing:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
             elif x > self.img_width * 0.65:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
-            elif y < self.img_height * 0.45:
+            elif y < self.img_height * 0.4:
                 ret_value = const.MOTION_LINE_MOVE_FRONT_SMALL
         return ret_value
 
@@ -154,13 +154,42 @@ class LineTracing:
         elif corner_point is not None:
             ret_value = const.MOTION_LINE_STOP
             x, y = corner_point
-            if x < self.img_width * 0.3:
+            if x < self.img_width * 0.35:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x > self.img_width * 0.6:
+            elif x > self.img_width * 0.65:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
-            elif y < self.img_height * 0.4:
+            elif y < self.img_height * 0.5:
                 ret_value = const.MOTION_LINE_MOVE_FRONT_SMALL
 
+        return ret_value
+
+    def select_return_motion(self, line_list):
+        if line_list is None:
+            ret_value = const.MOTION_LINE_LOST
+        elif len(line_list) == 1:
+            if calculate_angle(line_list[0][0] - line_list[0][2], line_list[0][1] - line_list[0][3]) > 0:
+                ret_value = const.MOTION_LINE_MOVE_RIGHT
+            else:
+                ret_value = const.MOTION_LINE_MOVE_LEFT
+        else:
+            corner_point = detect_corner(line_list)
+            point, angle = [], []
+            for line in line_list:
+                if calculate_distance((line[0], line[1]), corner_point)\
+                        > calculate_distance((line[2], line[3]), corner_point):
+                    point = (line[0], line[1])
+                else:
+                    point = (line[2], line[3])
+
+                angle.append(np.arctan2(point[1] - corner_point[1], point[0] - corner_point[0]))
+            center_angle = np.tan(np.average(angle))
+            ret_value = const.MOTION_LINE_STOP
+            if -np.pi * 75 / 180 <= center_angle <= 0:
+                ret_value = const.MOTION_LINE_TURN_RIGHT_SMALL
+            elif 0 <= center_angle <= np.pi * 75 / 180:
+                ret_value = const.MOTION_LINE_TURN_LEFT_SMALL
+            elif corner_point[1] < self.img_height * 0.5:
+                ret_value = const.MOTION_LINE_MOVE_FRONT
         return ret_value
 
     def merge_line(self, line_list):
@@ -195,6 +224,7 @@ class LineTracing:
             for index in merge_list:
                 del line_list[index]
 
+        ret_list.sort(reverse=True, key=lambda x: calculate_distance((x[0], x[1]), (x[2], x[3])))
         return ret_list
 
     def skeletonization(self, source_image):

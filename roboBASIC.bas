@@ -739,37 +739,37 @@ MotionPutMilk:
 
 MotionWalkingFrontWithMilk:
     GOSUB MotorAllMode3
-    SPEED 7
+    SPEED 8
 
-    MOVE G6A,  95,  76, 147,  83, 101
-    MOVE G6D, 101,  76, 147,  83,  98
-    MOVE G6B, 190,  15,  55,    ,    ,
-    MOVE G6C, 190,  15,  55,    ,    ,
+    MOVE G6A,  95,  76, 147,  88, 101
+    MOVE G6D, 101,  76, 147,  88,  98
+    MOVE G6B, 140,  15,  55,
+    MOVE G6C, 140,  15,  55,
     WAIT
 
     FOR i = 1 TO walking_count
-        MOVE G6A,  95,  93, 125,  85, 104
-        MOVE G6D, 104,  80, 147,  68, 102
-        WAIT
+            MOVE G6A,  95,  90, 125,  95, 104
+            MOVE G6D, 104,  77, 147,  88, 102
+            WAIT
 
-        MOVE G6A, 103,  80, 140,  90, 100
-        MOVE G6D,  95,  89, 147,  73, 102
-        WAIT
+            MOVE G6A, 103,  73, 140,  98, 100
+            MOVE G6D,  95,  85, 147,  80, 102
+            WAIT
 
-        MOVE G6D,  95,  89, 125,  85, 104
-        MOVE G6A, 104,  80, 147,  68, 102
-        WAIT
+            MOVE G6D,  95,  90, 125,  95, 104
+            MOVE G6A, 104,  77, 147,  88, 102
+            WAIT
 
-        MOVE G6D, 103,  80, 140,  90, 100
-        MOVE G6A,  95,  93, 147,  73, 102
-        WAIT
+            MOVE G6D, 103,  73, 140,  98, 100
+            MOVE G6A,  95,  85, 147,  80, 102
+            WAIT
     NEXT i
 
-    MOVE G6A,  95,  90, 125,  85, 104
-    MOVE G6D, 104,  76, 145,  81, 102
+    MOVE G6D,  95,  90, 125,  90, 104
+    MOVE G6A, 104,  76, 145,  86, 102
     WAIT
 
-    SPEED 10
+    SPEED 12
     GOSUB PostureMilkHigh
     RETURN
 
@@ -991,10 +991,10 @@ StateDirectionRecognition:
     GOSUB PostureDefault
     GOSUB MotorArmMode1
 
-    GOTO StateLinetracingToArrowInit
+    GOTO StateLineTracingToArrowInit
 
 
-StateLinetracingToArrowInit:
+StateLineTracingToArrowInit:
     ETX 4800, cSIGNAL_STATE
     GOSUB MotionOpenDoor
 
@@ -1004,12 +1004,20 @@ StateLinetracingToArrowInit:
     head_angle = 30
     GOSUB PostureHeadDown
 
-StateLinetracingToArrow:
+    temp = 0
+
+StateLineTracingToArrow:
     ETX 4800, cSIGNAL_IMAGE
     GOSUB UartRx
 
     IF rx_data = cMOTION_LINE_STOP THEN
-        GOTO StateArrowRecognitionInit
+        IF temp = 1 THEN
+            GOTO StateArrowRecognitionInit
+        ELSE
+            temp = 1
+            walking_count = 2
+            GOSUB MotionWalkingFrontDoor	
+        ENDIF
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
         walking_count = 2
         GOSUB MotionWalkingFrontDoor
@@ -1030,7 +1038,7 @@ StateLinetracingToArrow:
         GOSUB MotionTurnRightDoor
     ENDIF
 
-    GOTO StateLinetracingToArrow
+    GOTO StateLineTracingToArrow
 
 StateArrowRecognitionInit:
     ETX 4800, cSIGNAL_STATE
@@ -1070,9 +1078,9 @@ StateArrowRecognition:
         GOSUB MotionTurnRightBig
     ENDIF
 
-    GOTO StateLinetracingToCornerInit
+    GOTO StateLineTracingToCornerInit
 
-StateLinetracingToCornerInit:
+StateLineTracingToCornerInit:
     ETX 4800, cSIGNAL_STATE
     mission_count = mission_count + 1
 
@@ -1083,13 +1091,13 @@ StateLinetracingToCornerInit:
     GOSUB PostureHeadDown
 
     IF mission_count >= 4 THEN
-        GOTO StateLinetracingToCrossInit
+        GOTO StateLineTracingToCrossInit
     ENDIF
 
-    walking_count = 3
+    walking_count = 2
     GOSUB MotionWalkingFront
 
-StateLinetracingToCorner:
+StateLineTracingToCorner:
     ETX 4800, cSIGNAL_IMAGE
     GOSUB UartRx
 
@@ -1119,7 +1127,7 @@ StateLinetracingToCorner:
         GOSUB MotionTurnRight
     ENDIF
 
-    GOTO StateLinetracingToCorner
+    GOTO StateLineTracingToCorner
 
 StateSectionRecognitionInit:
     ETX 4800, cSIGNAL_STATE
@@ -1145,10 +1153,10 @@ StateSectionRecognition:
         PRINT "SND 5 !"
     ENDIF
 
-    head_angle = 90
+    head_angle = 85
     GOSUB PostureHeadDown
     FOR i = 0 TO 2
-        head_angle = 10 * i + 90
+        head_angle = 15 * i + 85
         GOSUB PostureHeadTurn
 
         ETX 4800, cSIGNAL_IMAGE
@@ -1193,7 +1201,7 @@ StateSafeSectionFindMilk:
         ELSE
             walking_count = 4
             GOSUB MotionTurnLeftBig
-            GOTO StateLinetracingToCornerInit
+            GOTO StateLineTracingToCornerInit
         ENDIF
     ENDIF
 
@@ -1225,16 +1233,16 @@ StateSafeSectionCatchMilk:
     ELSEIF rx_data = cMOTION_MILK_MOVE_LEFT THEN
         walking_count = 1
         IF head_angle = 60 THEN
-        	GOSUB MotionTurnLeft
+            GOSUB MotionTurnLeft
         ELSE
-        	GOSUB MotionWalkingLeft
+            GOSUB MotionWalkingLeft
         ENDIF
     ELSEIF rx_data = cMOTION_MILK_MOVE_RIGHT THEN
         walking_count = 1
         IF head_angle = 60 THEN
-        	GOSUB MotionTurnRight
+            GOSUB MotionTurnRight
         ELSE
-        	GOSUB MotionWalkingRight
+            GOSUB MotionWalkingRight
         ENDIF
     ENDIF
 
@@ -1265,6 +1273,8 @@ StateSafeSectionPutMilk:
     GOSUB UartRx
 
     IF rx_data = cMOTION_LINE_STOP THEN
+        walking_count = 2
+        GOSUB MotionWalkingFrontWithMilk
         walking_count = 5
         IF temp = 1 THEN
             GOSUB MotionTurnLeftWithMilk
@@ -1275,7 +1285,7 @@ StateSafeSectionPutMilk:
         GOSUB MotionWalkingFrontWithMilk
         GOSUB MotionPutMilk
 
-        GOTO StateComebackFromSafeInit
+        GOTO StateLineTracingToSafeInit
     ELSEIF rx_data = cMOTION_LINE_LOST THEN
         walking_count = 2
         IF temp = 1 THEN
@@ -1305,7 +1315,7 @@ StateSafeSectionPutMilk:
 
     GOTO StateSafeSectionPutMilk
 
-StateComebackFromSafeInit:
+StateLineTracingToSafeInit:
     ETX 4800, cSIGNAL_STATE
 
     IF temp = 1 THEN
@@ -1326,45 +1336,24 @@ StateComebackFromSafeInit:
     head_angle = 30
     GOSUB PostureHeadDown
 
-StateComebackFromSafe:
+StateLineTracingToSafe:
     ETX 4800, cSIGNAL_IMAGE
     GOSUB UartRx
 
     IF rx_data = cMOTION_LINE_STOP OR rx_data = cMOTION_LINE_LOST THEN
-        IF section_turn = 1 THEN
-            walking_count = 2
+        IF temp = 1 THEN
+            walking_count = 4
             GOSUB MotionWalkingFront
             walking_count = 1
-            IF clockwise = 1 THEN
-                GOSUB MotionTurnRightBig
-            ELSE
-                GOSUB MotionTurnLeftBig
-            ENDIF
-            walking_count = 6
-            GOSUB MotionWalkingFront
-            walking_count = 1
-            IF clockwise = 1 THEN
-                GOSUB MotionTurnLeftBig
-            ELSE
-                GOSUB MotionTurnRightBig
-            ENDIF
-        ELSEIF clockwise = 1 THEN
-            walking_count = 6
-            GOSUB MotionWalkingFront
-            walking_count = 2
             GOSUB MotionTurnLeftBig
-            walking_count = 4
-            GOSUB MotionWalkingFront
         ELSE
-            walking_count = 6
-            GOSUB MotionWalkingFront
-            walking_count = 2
-            GOSUB MotionTurnRightBig
             walking_count = 4
             GOSUB MotionWalkingFront
+            walking_count = 1
+            GOSUB MotionTurnRightBig
         ENDIF
 
-        GOTO StateLinetracingToCornerInit
+        GOTO StateReturnToLineFromSectionInit
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
         walking_count = 2
         GOSUB MotionWalkingFront
@@ -1385,7 +1374,7 @@ StateComebackFromSafe:
         GOSUB MotionTurnRight
     ENDIF
 
-    GOTO StateComebackFromSafe
+    GOTO StateLineTracingToSafe
 
 StateDangerSectionFindMilkInit:
     ETX 4800, cSIGNAL_STATE
@@ -1418,7 +1407,7 @@ StateDangerSectionFindMilk:
             ELSE
                 GOSUB MotionTurnLeftBig
             ENDIF
-            GOTO StateLinetracingToCornerInit
+            GOTO StateLineTracingToCornerInit
         ENDIF
     ELSE
         GOTO StateDangerSectionCatchMilkInit
@@ -1436,7 +1425,7 @@ StateDangerSectionCatchMilkInit:
     head_angle = 100
     GOSUB PostureHeadTurn
 
-    head_angle = 60
+    head_angle = 65
     GOSUB PostureHeadDown
 
     section_front_walking_count = 0
@@ -1447,7 +1436,7 @@ StateDangerSectionCatchMilk:
     GOSUB UartRx
 
     IF rx_data = cMOTION_MILK_NOT_FOUND THEN
-        IF head_angle = 60 THEN
+        IF head_angle = 65 THEN
             head_angle = 30
             GOSUB PostureHeadDown
             walking_count = 2
@@ -1456,7 +1445,7 @@ StateDangerSectionCatchMilk:
             GOTO StateDangerSectionPutMilkInit
         ENDIF
     ELSEIF rx_data = cMOTION_MILK_MOVE_FRONT THEN
-        IF head_angle = 60 THEN
+        IF head_angle = 65 THEN
             walking_count = 2
         ELSE
             walking_count = 1
@@ -1465,19 +1454,19 @@ StateDangerSectionCatchMilk:
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_MILK_MOVE_LEFT THEN
         walking_count = 1
-        IF head_angle = 60 THEN
-        	section_side_walking_count = section_side_walking_count - walking_count
-        	GOSUB MotionTurnLeft
-        ELSE 
-        	GOSUB MotionWalkingLeft
+        IF head_angle = 65 THEN
+            section_side_walking_count = section_side_walking_count - walking_count
+            GOSUB MotionTurnLeft
+        ELSE
+            GOSUB MotionWalkingLeft
         ENDIF
     ELSEIF rx_data = cMOTION_MILK_MOVE_RIGHT THEN
         walking_count = 1
-        IF head_angle = 60 THEN
-	        section_side_walking_count = section_side_walking_count + walking_count
-	        GOSUB MotionTurnRight
+        IF head_angle = 65 THEN
+            section_side_walking_count = section_side_walking_count + walking_count
+            GOSUB MotionTurnRight
         ELSE
-        	GOSUB MotionWalkingRight
+            GOSUB MotionWalkingRight
         ENDIF
     ENDIF
 
@@ -1520,20 +1509,22 @@ StateDangerSectionPutMilk:
     GOSUB UartRx
 
     IF rx_data = cMOTION_LINE_STOP THEN
+        walking_count = 2
+        GOSUB MotionWalkingFrontWithMilk
         walking_count = 5
         IF clockwise = 1 THEN
             GOSUB MotionTurnLeftWithMilk
         ELSE
             GOSUB MotionTurnRightWithMilk
         ENDIF
-        walking_count = 2
+        walking_count = 3
         GOSUB MotionWalkingFrontWithMilk
         GOSUB MotionPutMilk
 
-        GOTO StateComebackFromDangerInit
+        GOTO StateLineTracingToDangerInit
     ELSEIF rx_data = cMOTION_LINE_LOST THEN
         walking_count = 2
-        IF temp = 1 THEN
+        IF clockwise = 1 THEN
             GOSUB MotionWalkingLeftWithMilk
         ELSE
             GOSUB MotionWalkingRightWithMilk
@@ -1560,15 +1551,15 @@ StateDangerSectionPutMilk:
 
     GOTO StateDangerSectionPutMilk
 
-StateComebackFromDangerInit:
+StateLineTracingToDangerInit:
     ETX 4800, cSIGNAL_STATE
     IF clockwise = 1 THEN
-        walking_count = 5
+        walking_count = 4
         GOSUB MotionWalkingRight
         walking_count = 2
         GOSUB MotionTurnLeftBig
     ELSE
-        walking_count = 5
+        walking_count = 4
         GOSUB MotionWalkingLeft
         walking_count = 2
         GOSUB MotionTurnRightBig
@@ -1580,12 +1571,12 @@ StateComebackFromDangerInit:
     head_angle = 30
     GOSUB PostureHeadDown
 
-StateComebackFromDanger:
+StateLineTracingToDanger:
     ETX 4800, cSIGNAL_IMAGE
     GOSUB UartRx
 
     IF rx_data = cMOTION_LINE_STOP OR rx_data = cMOTION_LINE_LOST THEN
-        walking_count = 2
+        walking_count = 4
         GOSUB MotionWalkingFront
         walking_count = 1
         IF clockwise = 1 THEN
@@ -1593,15 +1584,7 @@ StateComebackFromDanger:
         ELSE
             GOSUB MotionTurnLeftBig
         ENDIF
-        walking_count = 6
-        GOSUB MotionWalkingFront
-        walking_count = 1
-        IF clockwise = 1 THEN
-            GOSUB MotionTurnLeftBig
-        ELSE
-            GOSUB MotionTurnRightBig
-        ENDIF
-        GOTO StateLinetracingToCornerInit
+        GOTO StateReturnToLineFromSectionInit
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
         walking_count = 2
         GOSUB MotionWalkingFront
@@ -1622,9 +1605,9 @@ StateComebackFromDanger:
         GOSUB MotionTurnRight
     ENDIF
 
-    GOTO StateComebackFromDanger
+    GOTO StateLineTracingToDanger
 
-StateLinetracingToCrossInit:
+StateReturnToLineFromSectionInit:
     ETX 4800, cSIGNAL_STATE
 
     head_angle = 100
@@ -1636,12 +1619,57 @@ StateLinetracingToCrossInit:
     walking_count = 2
     GOSUB MotionWalkingFront
 
-StateLinetracingToCross:
+StateReturnToLineFromSection:
     ETX 4800, cSIGNAL_IMAGE
     GOSUB UartRx
 
     IF rx_data = cMOTION_LINE_STOP THEN
-        GOTO StateLinetracingToGoalInit
+        walking_count = 3
+        GOSUB MotionWalkingFront
+        walking_count = 1
+        IF clockwise = 1 THEN
+            GOSUB MotionTurnLeftBig
+        ELSE
+            GOSUB MotionTurnRightBig
+        ENDIF
+        GOTO StateLineTracingToCornerInit
+    ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
+        walking_count = 2
+        GOSUB MotionWalkingFront
+    ELSEIF rx_data = cMOTION_LINE_TURN_LEFT_SMALL THEN
+        walking_count = 1
+        GOSUB MotionTurnLeft
+    ELSEIF rx_data = cMOTION_LINE_TURN_RIGHT_SMALL THEN
+        walking_count = 1
+        GOSUB MotionTurnRight
+    ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
+        walking_count = 2
+        GOSUB MotionWalkingLeft
+    ELSEIF rx_data = cMOTION_LINE_MOVE_RIGHT THEN
+        walking_count = 2
+        GOSUB MotionWalkingRight
+    ENDIF
+
+    GOTO StateReturnToLineFromSection
+
+StateLineTracingToCrossInit:
+    ETX 4800, cSIGNAL_STATE
+
+    head_angle = 100
+    GOSUB PostureHeadTurn
+
+    head_angle = 30
+    GOSUB PostureHeadDown
+
+    walking_count = 2
+    GOSUB MotionWalkingFront
+
+StateLineTracingToCross:
+    ETX 4800, cSIGNAL_IMAGE
+    GOSUB UartRx
+
+    IF rx_data = cMOTION_LINE_STOP THEN
+        GOTO StateLineTracingToGoalInit
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
         walking_count = 2
         GOSUB MotionWalkingFront
@@ -1662,14 +1690,14 @@ StateLinetracingToCross:
         GOSUB MotionTurnRight
     ENDIF
 
-    GOTO StateLinetracingToCross
+    GOTO StateLineTracingToCross
 
-StateLinetracingToGoalInit:
+StateLineTracingToGoalInit:
     ETX 4800, cSIGNAL_STATE
 
     walking_count = 3
     GOSUB MotionWalkingFront
-    
+
     walking_count = 2
     IF clockwise = 1 THEN
         GOSUB MotionTurnLeftBig
@@ -1680,7 +1708,7 @@ StateLinetracingToGoalInit:
     GOSUB MotionWalkingFront
     GOSUB PostureDoor
 
-StateLinetracingToGoal:
+StateLineTracingToGoal:
     ETX 4800, cSIGNAL_IMAGE
     GOSUB UartRx
 
@@ -1705,8 +1733,9 @@ StateLinetracingToGoal:
         walking_count = 1
         GOSUB MotionTurnRightDoor
     ENDIF
+    DELAY 2500
 
-    GOTO StateLinetracingToGoal
+    GOTO StateLineTracingToGoal
 
 StateSpeakSectionNameInit:
     ETX 4800, cSIGNAL_STATE
@@ -1730,7 +1759,7 @@ StateSpeakSectionName:
         PRINT "SND 3 !"
     ENDIF
 
-    DELAY 200
+    DELAY 2500
 
     GOTO StateSpeakSectionName
     '********** State End **********'
