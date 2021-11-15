@@ -20,6 +20,10 @@ class RobotStateBase(metaclass=ABCMeta):
     def state_change(self):
         pass
 
+    @abstractmethod
+    def init(self):
+        pass
+
 
 class DirectionRecognition(RobotStateBase):
     def __init__(self, next_state):
@@ -43,7 +47,11 @@ class DirectionRecognition(RobotStateBase):
             return const.MOTION_DIRECTION_EAST + label
 
     def state_change(self):
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        pass
 
 
 class LineTracingToArrow(RobotStateBase):
@@ -56,10 +64,16 @@ class LineTracingToArrow(RobotStateBase):
 
     def operation(self, source_image):
         return self.line_tracing.select_cross_motion(
-            self.line_tracing.detect_line(self.line_tracing.skeletonization(source_image)))
+            self.line_tracing.detect_line(
+                self.line_tracing.skeletonization(
+                    self.line_tracing.detect_yellow_line(source_image))))
 
     def state_change(self):
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        pass
 
 
 class ArrowRecognition(RobotStateBase):
@@ -74,7 +88,11 @@ class ArrowRecognition(RobotStateBase):
         return self.arrow_recognition.arrow_recognition(source_image)
 
     def state_change(self):
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        pass
 
 
 class LineTracingToCorner(RobotStateBase):
@@ -88,15 +106,18 @@ class LineTracingToCorner(RobotStateBase):
 
     def operation(self, source_image):
         return self.line_tracing.select_corner_motion(
-            self.line_tracing.detect_line(self.line_tracing.skeletonization(source_image)))
+            self.line_tracing.detect_line(
+                self.line_tracing.skeletonization(
+                    self.line_tracing.detect_yellow_line(source_image))))
 
     def state_change(self):
         self.mission_count += 1
-        if self.mission_count <= 3:
-            self.next_state[0].init()
-            return self.next_state[0]
-        else:
-            return self.next_state[1]
+        next_state = self.next_state[0 if self.mission_count <= 3 else 1]
+        next_state.init()
+        return next_state
+
+    def init(self):
+        self.line_tracing.init()
 
 
 class SectionRecognition(RobotStateBase):
@@ -111,12 +132,6 @@ class SectionRecognition(RobotStateBase):
 
     def __str__(self):
         return "Section Recognition"
-
-    def init(self):
-        self.predict_count = -1
-        self.predict_value = np.zeros(5)
-        self.section_type = None
-        self.color = {"RED": 0, "BLUE": 0, "": 0}
 
     def operation(self, source_image):
         self.predict_count += 1
@@ -140,7 +155,14 @@ class SectionRecognition(RobotStateBase):
     def state_change(self):
         next_state = self.next_state[0 if self.section_type == const.MOTION_SECTION_SAFE else 1]
         next_state.set_section_color("RED" if self.color["RED"] > self.color["BLUE"] else "BLUE")
+        next_state.init()
         return next_state
+
+    def init(self):
+        self.predict_count = -1
+        self.predict_value = np.zeros(5)
+        self.section_type = None
+        self.color = {"RED": 0, "BLUE": 0, "": 0}
 
 
 class SafeSectionFind(RobotStateBase):
@@ -164,7 +186,12 @@ class SafeSectionFind(RobotStateBase):
         return self.ret_val
 
     def state_change(self):
-        return self.next_state[0 if self.ret_val == const.MOTION_MILK_NOT_FOUND else 1]
+        next_state = self.next_state[0 if self.ret_val == const.MOTION_MILK_NOT_FOUND else 1]
+        next_state.init()
+        return next_state
+
+    def init(self):
+        pass
 
 
 class DangerSectionFind(RobotStateBase):
@@ -188,7 +215,12 @@ class DangerSectionFind(RobotStateBase):
         return self.ret_val
 
     def state_change(self):
-        return self.next_state[0 if self.ret_val == const.MOTION_MILK_NOT_FOUND else 1]
+        next_state = self.next_state[0 if self.ret_val == const.MOTION_MILK_NOT_FOUND else 1]
+        next_state.init()
+        return next_state
+
+    def init(self):
+        pass
 
 
 class SafeSectionCatch(RobotStateBase):
@@ -206,8 +238,11 @@ class SafeSectionCatch(RobotStateBase):
         return self.safe_section_catch.select_motion(source_image)
 
     def state_change(self):
-        self.next_state.line_tracing.init()
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        pass
 
 
 class DangerSectionCatch(RobotStateBase):
@@ -225,8 +260,11 @@ class DangerSectionCatch(RobotStateBase):
         return self.danger_section_catch.select_motion(source_image)
 
     def state_change(self):
-        self.next_state.line_tracing.init()
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        pass
 
 
 class SafeSectionPut(RobotStateBase):
@@ -240,17 +278,22 @@ class SafeSectionPut(RobotStateBase):
 
     def operation(self, source_image):
         return self.line_tracing.select_section_motion(
-            self.line_tracing.detect_line(self.line_tracing.detect_outline(source_image[:-40, 10:-10], "SAFE")))
+            self.line_tracing.detect_line(
+                self.line_tracing.skeletonization(
+                    self.line_tracing.detect_outline(source_image[:-40, 10:-10], "SAFE"))))
 
     def state_change(self):
-        self.next_state.line_tracing.init()
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        self.line_tracing.init()
 
 
 class DangerSectionPut(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
-        self.line_tracing = line_tracing.LineTracing(height_size=const.HEIGHT_SIZE - 80,
+        self.line_tracing = line_tracing.LineTracing(height_size=const.HEIGHT_SIZE - 60,
                                                      width_size=const.WIDTH_SIZE - 20)
 
     def __str__(self):
@@ -258,11 +301,16 @@ class DangerSectionPut(RobotStateBase):
 
     def operation(self, source_image):
         return self.line_tracing.select_section_motion(
-            self.line_tracing.detect_line(self.line_tracing.detect_outline(source_image[20:-60, 10:-10], "DANGER")))
+            self.line_tracing.detect_line(
+                self.line_tracing.skeletonization(
+                    self.line_tracing.detect_outline(source_image[10:-50, 10:-10], "DANGER"))))
 
     def state_change(self):
-        self.next_state.line_tracing.init()
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        self.line_tracing.init()
 
 
 class LineTracingToSafeCorner(RobotStateBase):
@@ -274,12 +322,17 @@ class LineTracingToSafeCorner(RobotStateBase):
         return "Line tracing to Safe Corner"
 
     def operation(self, source_image):
-        return self.line_tracing.select_corner_motion(
-            self.line_tracing.detect_line(self.line_tracing.detect_outline(source_image[20:-40], "SAFE")))
+        return self.line_tracing.select_section_motion(
+            self.line_tracing.detect_line(
+                self.line_tracing.skeletonization(
+                    self.line_tracing.detect_outline(source_image[20:-40], "SAFE"))))
 
     def state_change(self):
-        self.next_state.line_tracing.init()
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        self.line_tracing.init()
 
 
 class LineTracingToDangerCorner(RobotStateBase):
@@ -291,12 +344,17 @@ class LineTracingToDangerCorner(RobotStateBase):
         return "Line tracing to Danger Corner"
 
     def operation(self, source_image):
-        return self.line_tracing.select_corner_motion(
-            self.line_tracing.detect_line(self.line_tracing.detect_outline(source_image[20:-40], "DANGER")))
+        return self.line_tracing.select_section_motion(
+            self.line_tracing.detect_line(
+                self.line_tracing.skeletonization(
+                    self.line_tracing.detect_outline(source_image[20:-40], "DANGER"))))
 
     def state_change(self):
-        self.next_state.line_tracing.init()
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        self.line_tracing.init()
 
 
 class ReturnToLineFromSection(RobotStateBase):
@@ -309,13 +367,19 @@ class ReturnToLineFromSection(RobotStateBase):
 
     def operation(self, source_image):
         return self.line_tracing.select_return_motion(
-            self.line_tracing.detect_line(self.line_tracing.skeletonization(source_image)))
+            self.line_tracing.detect_line(
+                self.line_tracing.skeletonization(
+                    self.line_tracing.detect_yellow_line(source_image))))
 
     def set_next_state(self, next_state):
         self.next_state = next_state
 
     def state_change(self):
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        self.line_tracing.init()
 
 
 class LineTracingToCross(RobotStateBase):
@@ -328,10 +392,16 @@ class LineTracingToCross(RobotStateBase):
 
     def operation(self, source_image):
         return self.line_tracing.select_cross_motion(
-            self.line_tracing.detect_line(self.line_tracing.skeletonization(source_image)))
+            self.line_tracing.detect_line(
+                self.line_tracing.skeletonization(
+                    self.line_tracing.detect_yellow_line(source_image))))
 
     def state_change(self):
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        self.line_tracing.init()
 
 
 class LineTracingToGoal(RobotStateBase):
@@ -344,10 +414,16 @@ class LineTracingToGoal(RobotStateBase):
 
     def operation(self, source_image):
         return self.line_tracing.select_line_motion(
-            self.line_tracing.detect_line(self.line_tracing.skeletonization(source_image)))
+            self.line_tracing.detect_line(
+                self.line_tracing.skeletonization(
+                    self.line_tracing.detect_yellow_line(source_image))))
 
     def state_change(self):
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        self.line_tracing.init()
 
 
 class SpeakSectionName(RobotStateBase):
@@ -360,7 +436,6 @@ class SpeakSectionName(RobotStateBase):
         return "Speak Section Name"
 
     def operation(self, source_image):
-        print(self.controller.section_name)
         if self.index >= len(self.controller.section_name):
             return const.MOTION_SECTION_UNKNOWN
         section_name = self.controller.section_name[self.index]
@@ -368,7 +443,11 @@ class SpeakSectionName(RobotStateBase):
         return section_name
 
     def state_change(self):
+        self.next_state.init()
         return self.next_state
+
+    def init(self):
+        pass
 
 
 class RobotStateController:

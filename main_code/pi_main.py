@@ -4,13 +4,20 @@ import image_processing
 from const_variables import const
 import datetime
 import capture
+import sys
 
 log_file = open(f'log.txt', 'w')
+ftp = None
 
 
 def print_log(text):
     print(text)
     log_file.write(f"{datetime.datetime.now().strftime('%H-%M-%S.%f')} / {text}\n")
+
+
+def store_image(image):
+    if ftp is not None:
+        ftp.store_image(image)
 
 
 def tx_data(ser, send_data):
@@ -30,7 +37,9 @@ def rx_data(ser):
 
 
 if __name__ == '__main__':
-    ftp = capture.FtpClient(ip_address="192.168.0.4", user="simkyuwon", passwd="mil18-76061632")
+    if len(sys.argv) >= 4:
+        ftp = capture.FtpClient(ip_address=sys.argv[1], user=sys.argv[2], passwd=sys.argv[3])
+
     while True:
         try:
             cap = cv2.VideoCapture(0)  # 카메라 켜기  # 카메라 캡쳐 (사진만 가져옴)
@@ -69,7 +78,7 @@ if __name__ == '__main__':
             break
 
         if serial_data == const.SIGNAL_IMAGE:
-            ftp.store_image(frame)
+            store_image(frame)
             tx_data(serial_port, robot_state_controller.operation(cv2.GaussianBlur(frame, (3, 3), 0)))
         elif serial_data == const.SIGNAL_STATE:
             robot_state_controller.state_change()
