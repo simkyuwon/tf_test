@@ -17,16 +17,17 @@ const.HEIGHT_SIZE = 240
 const.WIDTH_SIZE = 320
 const.FPS = 20
 
-const.RED_RANGE1 = [(0, 90, 50), (20, 255, 255)]
-const.RED_RANGE2 = [(160, 90, 50), (180, 255, 255)]
+const.RED_RANGE1 = [(0, 90, 40), (20, 255, 255)]
+const.RED_RANGE2 = [(160, 90, 40), (180, 255, 255)]
 const.GREEN_RANGE = [(50, 60, 40), (80, 255, 255)]
-const.BLUE_RANGE = [(100, 60, 50), (120, 255, 255)]
+const.BLUE_RANGE = [(100, 60, 40), (120, 255, 255)]
 const.WHITE_RANGE = [(0, 0, 100), (180, 60, 255)]
 const.BLACK_RANGE = [(0, 0, 0), (180, 50, 60)]
 
 const.SIGNAL_CHECK = 0x40
 const.SIGNAL_IMAGE = 0x41
 const.SIGNAL_STATE = 0x42
+const.SIGNAL_STOP = 0x43
 
 const.MOTION_LINE_MOVE_FRONT = 0x80
 const.MOTION_LINE_MOVE_FRONT_SMALL = 0x81

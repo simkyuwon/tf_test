@@ -1,10 +1,12 @@
 import cv2
 import serial
-import image_processing
 from const_variables import const
 import datetime
 import capture
 import sys
+sys.path.append('/home/pi/minirobot/init/sim')
+import image_processing
+
 
 log_file = open(f'log.txt', 'w')
 ftp = None
@@ -56,9 +58,15 @@ if __name__ == '__main__':
 
     robot_state_controller = image_processing.RobotStateController()
 
+    print_log("통신 대기")
     while True:
-        if rx_data(serial_port) is not None:
-            break
+        serial_data = rx_data(serial_port)
+        if serial_data is not None:
+            serial_data = serial_data[0]
+            if serial_data == const.SIGNAL_CHECK:
+                break
+            elif serial_data == const.SIGNAL_STOP:
+                sys.exit()
     tx_data(serial_port, const.SIGNAL_CHECK)
     print_log("통신 시작")
 

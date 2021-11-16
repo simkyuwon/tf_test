@@ -19,7 +19,7 @@ def check_section_color(source_image):
 
 class SectionRecognition:
     def __init__(self):
-        self.model_path = "section_model.tflite"
+        self.model_path = "/home/pi/minirobot/init/sim/section_model.tflite"
         if not pathlib.Path.exists(pathlib.Path(self.model_path)):
             raise Exception("model not found")
         self.interpreter = tflite.Interpreter(model_path=self.model_path)

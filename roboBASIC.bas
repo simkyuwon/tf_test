@@ -5,6 +5,7 @@ CONST cIR_SENSOR_PORT = 4
 CONST cSIGNAL_CHECK = &H40
 CONST cSIGNAL_IMAGE = &H41
 CONST cSIGNAL_STATE = &H42
+CONST cSIGNAL_STOP = &H43
 
 CONST cMOTION_LINE_MOVE_FRONT = &H80
 CONST cMOTION_LINE_MOVE_FRONT_SMALL = &H81
@@ -62,7 +63,8 @@ DIM section_front_walking_count AS INTEGER
 DIM section_side_walking_count AS INTEGER
 
 
-GOTO Main
+GOSUB Initiate
+GOTO WaitRemoteControl
 
 '********** Motor Control Begin **********'
 MotorAllOn:
@@ -180,8 +182,8 @@ PostureSit:
 PostureDoor:
     MOVE G6A, 100,  76, 145,  94, 100, 100
     MOVE G6D, 100,  76, 145,  94, 100, 100
-    MOVE G6B, 190,  15,  55,  ,  ,
-    MOVE G6C, 190,  15,  55,  ,  ,
+    MOVE G6B, 190,  10,  55,  ,  ,
+    MOVE G6C, 190,  10,  55,  ,  ,
     WAIT
     RETURN
 
@@ -217,81 +219,22 @@ PostureHeadDown:
 
     '********** Motion Begin **********'
 MotionWalkingFront:
-    IF walking_mode = 0 THEN
-        GOSUB MotionWalkingFrontSlow
-    ELSE
-        walking_count = walking_count + 1
-        GOSUB MotionWalkingFrontFast
-    ENDIF
-    RETURN
-
-MotionWalkingFrontSlow:
-    GOSUB MotorAllMode3
-    SPEED 12
-    MOVE G6A,  95,  76, 147,  93, 101
-    MOVE G6D, 101,  76, 147,  93,  98
-    MOVE G6B, 100
-    MOVE G6C, 100
-    WAIT
-
-    FOR i = 1 TO walking_count
-        SPEED 12
-        MOVE G6A,  95,  90, 125, 100, 104
-        MOVE G6D, 102,  77, 147,  93, 102
-        MOVE G6B,  85
-        MOVE G6C, 115
-        WAIT
-
-        SPEED 6
-        MOVE G6A, 103,  73, 140, 103, 100
-        MOVE G6D,  95,  85, 147,  85, 102
-        WAIT
-
-        SPEED 12
-        MOVE G6D,  95,  95, 120, 100, 104
-        MOVE G6A, 102,  77, 147,  93, 102
-        MOVE G6C,  85
-        MOVE G6B,  115
-        WAIT
-
-        SPEED 6
-        MOVE G6D, 103,  73, 140, 103, 100
-        MOVE G6A,  95,  85, 147,  85, 102
-        WAIT
-    NEXT i
-
-    SPEED 12
-    MOVE G6D, 104,  76, 145,  91, 102
-    MOVE G6A,  98,  90, 125,  95, 104
-    MOVE G6B, 100
-    MOVE G6C, 100
-    WAIT
-
-    SPEED 6
-    MOVE G6D, 100,  76, 145,  93, 100, 100
-    MOVE G6A, 100,  76, 145,  93, 100, 100
-
-    SPEED 5
-    GOSUB PostureDefault
-    RETURN
-
-MotionWalkingFrontFast:
     HIGHSPEED SETON
-    SPEED 9
+    SPEED 7
     GOSUB MotorAllMode3
 
     IF walking_order = 0 THEN
         walking_order = 1
-        MOVE G6D,  95,  76, 147,  93,  95
-        MOVE G6A, 101,  76, 147,  93,  98
+        MOVE G6A,  95,  76, 147,  93,  97
+        MOVE G6D, 101,  76, 147,  93,  96
         MOVE G6B, 100
         MOVE G6C, 100
         WAIT
         GOTO MotionWalkingFrontFastLeft
     ELSE
         walking_order = 0
-        MOVE G6A,  95,  76, 147,  93,  95
-        MOVE G6D, 101,  76, 147,  93,  98
+        MOVE G6D,  95,  76, 147,  93,  97
+        MOVE G6A, 101,  76, 147,  93,  96
         MOVE G6B, 100
         MOVE G6C, 100
         WAIT
@@ -299,8 +242,8 @@ MotionWalkingFrontFast:
     ENDIF
 
 MotionWalkingFrontFastLeft:
-    MOVE G6A,  85,  90, 125, 100, 109
-    MOVE G6D, 104,  77, 147,  93,  97
+    MOVE G6A,  94,  90, 125, 100, 103
+    MOVE G6D, 103,  77, 147,  93, 101
     MOVE G6B,  85
     MOVE G6C, 115
     WAIT
@@ -317,13 +260,13 @@ MotionWalkingFrontFastLeft:
     ENDIF
 
 MotionWalkingFrontFastLeftStop:
-    MOVE G6D,  85,  90, 125,  95, 104
-    MOVE G6A, 102,  76, 145,  91,  102
+    MOVE G6D,  95,  90, 125,  95, 102
+    MOVE G6A,  98,  76, 145,  91, 100
     MOVE G6C, 100
     MOVE G6B, 100
     WAIT
-    
-    SPEED 4
+
+    SPEED 3
     GOSUB PostureDefault
 
     DELAY 300
@@ -332,8 +275,8 @@ MotionWalkingFrontFastLeftStop:
     RETURN
 
 MotionWalkingFrontFastRight:
-    MOVE G6D,  85,  90, 125, 100, 109
-    MOVE G6A, 104,  77, 147,  93,  97
+    MOVE G6D,  94,  90, 125, 100, 103
+    MOVE G6A, 103,  77, 147,  93, 101
     MOVE G6C,  85
     MOVE G6B, 115
     WAIT
@@ -349,17 +292,60 @@ MotionWalkingFrontFastRight:
     ENDIF
 
 MotionWalkingFrontFastRightStop:
-    MOVE G6A,  85,  90, 125,  95, 104
-    MOVE G6D, 102,  76, 145,  91, 102
+    MOVE G6A,  95,  90, 125,  95, 102
+    MOVE G6D,  98,  76, 145,  91, 100
     MOVE G6B, 100
     MOVE G6C, 100
     WAIT
 
-    SPEED 4
+    SPEED 3
     GOSUB PostureDefault
 
     DELAY 300
     HIGHSPEED SETOFF
+
+    RETURN
+
+MotionWalkingFrontSlow:
+    SPEED 4
+    GOSUB MotorAllMode3
+
+    MOVE G6A,  95,  76, 147,  93,  97
+    MOVE G6D, 101,  76, 147,  93,  96
+    MOVE G6B, 100
+    MOVE G6C, 100
+    WAIT
+
+    FOR i = 1 TO walking_count
+        MOVE G6A,  94,  90, 125, 100, 103
+        MOVE G6D, 103,  77, 147,  93, 101
+        MOVE G6B,  85
+        MOVE G6C, 115
+        WAIT
+
+
+        MOVE G6A, 103,  73, 140, 103, 100
+        MOVE G6D,  95,  85, 147,  85, 102
+        WAIT
+
+        MOVE G6D,  94,  90, 125, 100, 103
+        MOVE G6A, 103,  77, 147,  93, 101
+        MOVE G6C,  85
+        MOVE G6B, 115
+        WAIT
+
+        MOVE G6D, 103,  73, 140, 103, 100
+        MOVE G6A,  95,  85, 147,  85, 102
+        WAIT
+    NEXT i
+
+    MOVE G6A,  95,  90, 125,  95, 102
+    MOVE G6D,  98,  76, 145,  91, 100
+    MOVE G6B, 100
+    MOVE G6C, 100
+    WAIT
+
+    GOSUB PostureDefault
 
     RETURN
 
@@ -449,17 +435,18 @@ MotionWalkingLeft:
 
     FOR i = 1 TO walking_count
         SPEED 12
-        MOVE G6A,  93,  90, 120, 105, 104, 100
-        MOVE G6D, 103,  76, 145,  93, 104, 100
+        MOVE G6A, 93,  90, 125, 100, 106, 100
+        MOVE G6D,102,  76, 145,  93, 106, 100
         WAIT
 
-        MOVE G6A, 102,  77, 145,  93, 100, 100
-        MOVE G6D,  90,  80, 140,  95, 107, 100
+        SPEED 12
+        MOVE G6A, 102,  77, 145, 93, 102, 100
+        MOVE G6D,90,  80, 140,  95, 109, 100
         WAIT
 
-        SPEED 15
-        MOVE G6A,  98,  76, 145,  93, 100, 100
-        MOVE G6D,  98,  76, 145,  93, 100, 100
+        SPEED 10
+        MOVE G6A,95,  76, 145,  93, 104, 100
+        MOVE G6D,95,  76, 145,  93, 104, 100
         WAIT
 
         SPEED 8
@@ -551,8 +538,8 @@ MotionTurnRight:
     RETURN
 
 MotionTurnLeft:
-    MOTORMODE G6A,3,3,3,3,2
-    MOTORMODE G6D,3,3,3,3,2
+    MOTORMODE G6A, 3, 3, 3, 3, 2
+    MOTORMODE G6D, 3, 3, 3, 3, 2
     FOR i = 1 TO walking_count
         SPEED 8
         MOVE G6D, 100,  56, 145, 113, 100,  100
@@ -577,53 +564,97 @@ MotionTurnLeft:
     RETURN
 
 MotionTurnRightBig:
+    GOSUB GyroOff
     MOTORMODE G6A,3,3,3,3,2
     MOTORMODE G6D,3,3,3,3,2
     FOR i = 1 TO walking_count
         SPEED 15
-        MOVE G6A,  95,  36, 145, 133, 105, 100
-        MOVE G6D,  95, 116, 145,  53, 105, 100
+        MOVE G6A,  95,  36, 145, 140, 105, 100
+        MOVE G6D,  95, 116, 145,  60, 105, 100
         WAIT
 
-        MOVE G6A,  90,  36, 145, 133, 105, 100
-        MOVE G6D,  90, 116, 145,  53, 105, 100
+        MOVE G6A,  90,  36, 145, 140, 105, 100
+        MOVE G6D,  90, 116, 145,  60, 105, 100
         WAIT
 
         SPEED 9
         GOSUB PostureDefault
         DELAY 500
     NEXT i
+    GOSUB GyroOn
+    RETURN
+
+MotionTurnRightBigWithMilk:
+    GOSUB GyroOff
+    MOTORMODE G6A,3,3,3,3,2
+    MOTORMODE G6D,3,3,3,3,2
+    FOR i = 1 TO walking_count
+        SPEED 15
+        MOVE G6A,  95,  36, 145, 135, 105, 100
+        MOVE G6D,  95, 116, 145,  55, 105, 100
+        WAIT
+
+        MOVE G6A,  90,  36, 145, 135, 105, 100
+        MOVE G6D,  90, 116, 145,  55, 105, 100
+        WAIT
+
+        SPEED 9
+        GOSUB PostureMilkHigh
+        DELAY 500
+    NEXT i
+    GOSUB GyroOn
     RETURN
 
 MotionTurnLeftBig:
+    GOSUB GyroOff
     MOTORMODE G6A,3,3,3,3,2
     MOTORMODE G6D,3,3,3,3,2
     FOR i = 1 TO walking_count
         SPEED 15
-        MOVE G6A,95,  116, 145,  53, 105, 100
-        MOVE G6D,95,  36, 145,  133, 105, 100
+        MOVE G6A,95,  116, 145,  60, 105, 100
+        MOVE G6D,95,  36, 145,  140, 105, 100
         WAIT
 
-        MOVE G6A,90,  116, 145,  53, 105, 100
-        MOVE G6D,90,  36, 145,  133, 105, 100
+        MOVE G6A,90,  116, 145,  60, 105, 100
+        MOVE G6D,90,  36, 145,  140, 105, 100
         WAIT
 
         SPEED 9
         GOSUB PostureDefault
         DELAY 500
     NEXT i
+    GOSUB GyroOn
+    RETURN
+
+MotionTurnLeftBigWithMilk:
+    GOSUB GyroOff
+    MOTORMODE G6A,3,3,3,3,2
+    MOTORMODE G6D,3,3,3,3,2
+    FOR i = 1 TO walking_count
+        SPEED 15
+        MOVE G6A,95,  116, 145,  55, 105, 100
+        MOVE G6D,95,  36, 145,  135, 105, 100
+        WAIT
+
+        MOVE G6A,90,  116, 145,  55, 105, 100
+        MOVE G6D,90,  36, 145,  135, 105, 100
+        WAIT
+
+        SPEED 9
+        GOSUB PostureMilkHigh
+        DELAY 500
+    NEXT i
+    GOSUB GyroOn
     RETURN
 
 MotionWalkingFrontDoor:
-    GOSUB MotionOpenDoor
-
     GOSUB MotorAllMode3
 
     SPEED 10
     MOVE G6A,  95,  76, 147,  88, 101
     MOVE G6D, 101,  76, 147,  88,  98
-    MOVE G6B, 190,  15,  55,  ,  ,
-    MOVE G6C, 190,  15,  55,  ,  ,
+    MOVE G6B, 190,  10,  55,  ,  ,
+    MOVE G6C, 190,  10,  55,  ,  ,
     WAIT
 
     FOR i = 1 TO walking_count
@@ -654,8 +685,6 @@ MotionWalkingFrontDoor:
     RETURN
 
 MotionWalkingRightDoor:
-    GOSUB MotionOpenDoor
-
     MOTORMODE G6A, 3, 3, 3, 3, 2
     MOTORMODE G6D, 3, 3, 3, 3, 2
     FOR i = 1 TO walking_count
@@ -680,10 +709,8 @@ MotionWalkingRightDoor:
     RETURN
 
 MotionWalkingLeftDoor:
-    GOSUB MotionOpenDoor
-
-    MOTORMODE G6A,3,3,3,3,2
-    MOTORMODE G6D,3,3,3,3,2
+    MOTORMODE G6A, 3, 3, 3, 3, 2
+    MOTORMODE G6D, 3, 3, 3, 3, 2
     FOR i = 1 TO walking_count
         SPEED 12
         MOVE G6A,  95,  90, 125, 100, 104, 100
@@ -734,8 +761,8 @@ MotionTurnRightDoor:
     RETURN
 
 MotionTurnLeftDoor:
-    MOTORMODE G6A,3,3,3,3,2
-    MOTORMODE G6D,3,3,3,3,2
+    MOTORMODE G6A, 3, 3, 3, 3, 2
+    MOTORMODE G6D, 3, 3, 3, 3, 2
     FOR i = 1 TO walking_count
         SPEED 8
         MOVE G6D,  95,  56, 145, 113, 105, 100
@@ -760,54 +787,100 @@ MotionTurnLeftDoor:
     GOSUB PostureDoor
     RETURN
 
-MotionOpenDoor:
-    SPEED 7
-    MOVE G6B, 190,  20,  80
-    MOVE G6C, 190,  20,  80
+MotionWalkingFrontDoorOpen:
+    GOSUB MotorAllMode3
+
+    SPEED 10
+    MOVE G6A,  95,  76, 147,  88, 101
+    MOVE G6D, 101,  76, 147,  88,  98
+    MOVE G6B, 190,  70,  50,  ,  ,
+    MOVE G6C, 190,  70,  50,  ,  ,
     WAIT
 
-    MOVE G6B, 190,  30,  90
-    MOVE G6C, 190,  30,  90
+    FOR i = 1 TO walking_count
+        MOVE G6A,  90,  90, 125,  95, 109,
+        MOVE G6D, 104,  77, 147,  88,  97,
+        WAIT
+
+        MOVE G6A, 103,  73, 140,  98, 100
+        MOVE G6D,  95,  85, 147,  80, 102
+        WAIT
+
+        MOVE G6D,  90,  90, 125,  95, 109,
+        MOVE G6A, 104,  77, 147,  88,  97,
+        WAIT
+
+        MOVE G6D, 103,  73, 140,  98, 100
+        MOVE G6A,  95,  85, 147,  80, 102
+        WAIT
+
+    NEXT i
+
+    MOVE G6A,  85,  90, 125,  95, 104
+    MOVE G6D, 102,  76, 145,  91, 102
     WAIT
 
-    MOVE G6B, 190,  15,  55
-    MOVE G6C, 190,  15,  55
-    WAIT
+    SPEED 15
+
+    MOVE G6A, 100,  76, 145,  93, 100, 100
+    MOVE G6D, 100,  76, 145,  93, 100, 100
+    MOVE G6B, 190,  70,  50,  ,  ,
+    MOVE G6C, 190,  70,  50,  ,  ,
+
     RETURN
 
 MotionCatchMilk:
     GOSUB GyroOff
     GOSUB MotorAllMode3
 
+    SPEED 4
+
+    MOVE G6A, 105,  76, 145,  94, 95, 100
+    MOVE G6D, 105,  76, 145,  94, 95, 100
+    WAIT
+
     SPEED 6
     GOSUB PostureSit
 
-    SPEED 12	
-    MOVE G6B, 160,  30, 100
-    MOVE G6C, 160,  30, 100
-    WAIT	
+    SPEED    6
+    MOVE G6B, 165,  60, 80
+    MOVE G6C, 165,  60, 80
+    WAIT   
 
     SPEED 3
-    MOVE G6A,  85, 150,  31, 152, 115,
-    MOVE G6D,  85, 150,  31, 152, 115,
+    MOVE G6A,  70, 155,  26, 155, 125,
+    MOVE G6D,  70, 155,  26, 155, 125,
     WAIT
 
-    SPEED 10
-    MOVE G6B, 155,  17,  60,  ,  ,
-    MOVE G6C, 155,  17,  60,  ,  ,
+    SPEED 2
+    MOVE G6A,  65, 155,  31, 190, 135,
+    MOVE G6D,  65, 155,  31, 190, 135,
     WAIT
 
-    MOVE G6B, 150,  15,  55,  ,  ,
-    MOVE G6C, 150,  15,  55,  ,  ,
+    SPEED 6
+    MOVE G6B, 165,  15,  55,  ,  ,
+    MOVE G6C, 165,  15,  55,  ,  ,
     WAIT
 
-    MOVE G6B, 150,  20, 100
-    MOVE G6C, 150,  20, 100
+    MOVE G6B, 155,  15,  55,  ,  ,
+    MOVE G6C, 155,  15,  55,  ,  ,
     WAIT
 
-    SPEED 5
-    MOVE G6B, 145,  15,  55,  ,  ,
-    MOVE G6C, 145,  15,  55,  ,  ,
+    MOVE G6B, 160,  20, 100
+    MOVE G6C, 160,  20, 100
+    WAIT
+
+    MOVE G6B, 160,  15,  55,  ,  ,
+    MOVE G6C, 160,  15,  55,  ,  ,
+    WAIT
+
+    SPEED 3
+    MOVE G6B, 155,  10,  65,  ,  ,
+    MOVE G6C, 155,  10,  65,  ,  ,
+
+    SPEED 3
+    MOVE G6A,  70, 155,  26, 155, 125,
+    MOVE G6D,  70, 155,  26, 155, 125,
     WAIT
 
     SPEED 6
@@ -903,29 +976,28 @@ MotionWalkingFrontWithMilk:
     RETURN
 
 MotionWalkingLeftWithMilk:
-    MOTORMODE G6A,3,3,3,3,2
-    MOTORMODE G6D,3,3,3,3,2
+    MOTORMODE G6A, 3, 3, 3, 3, 2
+    MOTORMODE G6D, 3, 3, 3, 3, 2
 
     FOR i = 1 TO walking_count
         SPEED 12
-        MOVE G6A,  93,  90, 120, 105, 104, 100
-        MOVE G6D, 103,  76, 145,  93, 104, 100
+        MOVE G6A,  93,  90, 125, 100, 106, 100
+        MOVE G6D, 102,  76, 145,  93, 106, 100
         WAIT
 
-        MOVE G6A, 102,  77, 145,  93, 100, 100
-        MOVE G6D,  90,  80, 140,  95, 107, 100
+        MOVE G6A, 102,  77, 145,  93, 102, 100
+        MOVE G6D,  90,  80, 140,  95, 109, 100
         WAIT
 
-        SPEED 15
-        MOVE G6A,  98,  76, 145,  93, 100, 100
-        MOVE G6D,  98,  76, 145,  93, 100, 100
+        SPEED 10
+        MOVE G6A,  95,  76, 145,  93, 104, 100
+        MOVE G6D,  95,  76, 145,  93, 104, 100
         WAIT
 
         SPEED 8
         GOSUB PostureMilkHigh
     NEXT i
 
-    GOSUB MotorAllMode3
     RETURN
 
 MotionWalkingRightWithMilk:
@@ -934,23 +1006,24 @@ MotionWalkingRightWithMilk:
 
     FOR i = 1 TO walking_count
         SPEED 12
-        MOVE G6D,  93,  90, 120, 105, 104, 100
-        MOVE G6A, 103,  76, 145,  93, 104, 100
+        MOVE G6D,  93,  90, 125, 100, 106, 100
+        MOVE G6A, 102,  76, 146,  93, 106, 100
         WAIT
 
-        MOVE G6D, 102,  77, 145,  93, 100, 100
-        MOVE G6A,  90,  80, 140,  95, 107, 100
+        SPEED 12
+        MOVE G6D, 102,  77, 145,  93, 102, 100
+        MOVE G6A,  90,  80, 140,  95, 109, 100
         WAIT
 
-        SPEED 15
-        MOVE G6D,  98,  76, 145,  93, 100, 100
-        MOVE G6A,  98,  76, 145,  93, 100, 100
+        SPEED 10
+        MOVE G6D,  95,  76, 145,  93, 104, 100
+        MOVE G6A,  95,  76, 145,  93, 104, 100
         WAIT
 
         SPEED 8
         GOSUB PostureMilkHigh
     NEXT i
-    GOSUB MotorAllMode3
+
     RETURN
 
 MotionTurnRightWithMilk:
@@ -1078,6 +1151,9 @@ UartRx:
     rx_data = 0
     DELAY 10
     ERX 4800, rx_data, UartRx
+    IF rx_data < &H40 THEN
+        GOTO UartRx
+    ENDIF
     RETURN
 
 UartConnectWait:
@@ -1157,11 +1233,12 @@ StateLineTracingToArrow:
     GOSUB UartRx
 
     IF rx_data = cMOTION_LINE_STOP THEN
-        walking_count = 2
-        GOSUB MotionWalkingFrontDoor
+        walking_count = 3
         IF temp = 1 THEN
+        	GOSUB MotionWalkingFrontDoorOpen
             GOTO StateArrowRecognitionInit
         ELSE
+        	GOSUB MotionWalkingFrontDoor
             temp = 1
         ENDIF
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
@@ -1171,10 +1248,10 @@ StateLineTracingToArrow:
         walking_count = 1
         GOSUB MotionWalkingFrontDoor
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
-        walking_count = 1
+        walking_count = 2
         GOSUB MotionWalkingLeftDoor
     ELSEIF rx_data = cMOTION_LINE_MOVE_RIGHT THEN
-        walking_count = 1
+        walking_count = 2
         GOSUB MotionWalkingRightDoor
     ELSEIF rx_data = cMOTION_LINE_TURN_LEFT_SMALL THEN
         walking_count = 1
@@ -1189,9 +1266,9 @@ StateLineTracingToArrow:
 StateArrowRecognitionInit:
     ETX 4800, cSIGNAL_STATE
 
-    head_angle = 75
+    head_angle = 80
     GOSUB PostureHeadDown
-    
+
     SPEED 8
     MOVE G6B, 150,  30,  80
     MOVE G6C, 150,  30,  80
@@ -1209,15 +1286,15 @@ StateArrowRecognition:
         GOTO StateArrowRecognition
     ELSEIF rx_data = cMOTION_ARROW_LEFT THEN
         clockwise = 1
-        walking_count = 4
+        walking_count = 7
         GOSUB MotionWalkingFront
-        walking_count = 2
+        walking_count = 3
         GOSUB MotionTurnLeftBig
     ELSEIF rx_data = cMOTION_ARROW_RIGHT THEN
         clockwise = 0
-        walking_count = 4
+        walking_count = 7
         GOSUB MotionWalkingFront
-        walking_count = 2
+        walking_count = 3
         GOSUB MotionTurnRightBig
     ENDIF
 
@@ -1230,14 +1307,14 @@ StateLineTracingToCornerInit:
     head_angle = 100
     GOSUB PostureHeadTurn
 
-    head_angle = 30
+    head_angle = 27
     GOSUB PostureHeadDown
 
     IF mission_count >= 4 THEN
         GOTO StateLineTracingToCrossInit
     ENDIF
 
-    walking_count = 2
+    walking_count = 5
     GOSUB MotionWalkingFront
 
 StateLineTracingToCorner:
@@ -1247,20 +1324,20 @@ StateLineTracingToCorner:
     IF rx_data = cMOTION_LINE_STOP OR rx_data = cMOTION_LINE_LOST THEN
         head_angle = 100
         GOSUB PostureHeadDown
-        walking_count = 4
+        walking_count = 10
         GOSUB MotionWalkingFront
         GOTO StateSectionRecognitionInit
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
-        walking_count = 2
+        walking_count = 6
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT_SMALL THEN
-        walking_count = 1
+        walking_count = 3
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
-        walking_count = 1
+        walking_count = 2
         GOSUB MotionWalkingLeft
     ELSEIF rx_data = cMOTION_LINE_MOVE_RIGHT THEN
-        walking_count = 1
+        walking_count = 2
         GOSUB MotionWalkingRight
     ELSEIF rx_data = cMOTION_LINE_TURN_LEFT_SMALL THEN
         walking_count = 1
@@ -1279,7 +1356,7 @@ StateSectionRecognition:
     head_angle = 70
     GOSUB PostureHeadDown
     IF clockwise = 1 THEN
-        head_angle = 45
+        head_angle = 55
     ELSE
         head_angle = 145
     ENDIF
@@ -1328,8 +1405,8 @@ StateSafeSectionFindMilk:
     IF rx_data = cMOTION_MILK_FOUND THEN
         GOTO StateSafeSectionCatchMilkInit
     ELSE
-        walking_count = 2
         section_turn = 1
+        walking_count = 2
         IF clockwise = 1 THEN
             GOSUB MotionTurnLeftBig
         ELSE
@@ -1342,13 +1419,29 @@ StateSafeSectionFindMilk:
         IF rx_data = cMOTION_MILK_FOUND THEN
             GOTO StateSafeSectionCatchMilkInit
         ELSE
-            walking_count = 4
+            walking_count = 1
             IF clockwise = 1 THEN
-                GOSUB MotionTurnRightBig
-            ELSE
                 GOSUB MotionTurnLeftBig
+            ELSE
+                GOSUB MotionTurnRightBig
             ENDIF
-            GOTO StateLineTracingToCornerInit
+
+            ETX 4800, cSIGNAL_IMAGE
+            GOSUB UartRx
+
+            IF rx_data = cMOTION_MILK_FOUND THEN
+                GOTO StateSafeSectionCatchMilkInit
+            ELSE
+                walking_count = 6
+                IF clockwise = 1 THEN
+                    GOSUB MotionTurnRightBig
+                ELSE
+                    GOSUB MotionTurnLeftBig
+                ENDIF
+                walking_count = 4
+                GOSUB MotionWalkingFront
+                GOTO StateLineTracingToCornerInit
+            ENDIF
         ENDIF
     ENDIF
 
@@ -1364,16 +1457,16 @@ StateSafeSectionCatchMilk:
         IF head_angle = 60 THEN
             head_angle = 30
             GOSUB PostureHeadDown
-            walking_count = 2
+            walking_count = 7
             GOSUB MotionWalkingFront
         ELSE
             GOTO StateSafeSectionPutMilkInit
         ENDIF
     ELSEIF rx_data = cMOTION_MILK_MOVE_FRONT THEN
         IF head_angle = 60 THEN
-            walking_count = 3
+            walking_count = 5
         ELSE
-            walking_count = 1
+            walking_count = 3
         ENDIF
         section_front_walking_count = section_front_walking_count + walking_count
         GOSUB MotionWalkingFront
@@ -1398,17 +1491,19 @@ StateSafeSectionCatchMilk:
 StateSafeSectionPutMilkInit:
     ETX 4800, cSIGNAL_STATE
 
+    walking_count = 2
+    GOSUB MotionWalkingFrontSlow
     GOSUB MotionCatchMilk
     GOSUB PostureMilkHigh
 
     head_angle = 100
     GOSUB PostureHeadTurn
 
-    head_angle = 30
+    head_angle = 27
     GOSUB PostureHeadDown
 
-    IF section_front_walking_count < 5 THEN
-        walking_count = 5 - section_front_walking_count
+    IF section_front_walking_count < 20 THEN
+        walking_count = 20 - section_front_walking_count
         GOSUB MotionWalkingFrontWithMilk
     ENDIF
 
@@ -1419,13 +1514,11 @@ StateSafeSectionPutMilk:
     GOSUB UartRx
 
     IF rx_data = cMOTION_LINE_STOP THEN
-        walking_count = 1
-        GOSUB MotionWalkingFrontWithMilk
-        walking_count = 5
+        walking_count = 3
         IF direction_turn = 1 THEN
-            GOSUB MotionTurnLeftWithMilk
+            GOSUB MotionTurnLeftBigWithMilk
         ELSE
-            GOSUB MotionTurnRightWithMilk
+            GOSUB MotionTurnRightBigWithMilk
         ENDIF
         walking_count = 3
         GOSUB MotionWalkingFrontWithMilk
@@ -1466,21 +1559,21 @@ StateLineTracingToSafeInit:
     temp = 0
 
     IF direction_turn = 1 THEN
-        walking_count = 4
+        walking_count = 3
         GOSUB MotionWalkingRight
-        walking_count = 2
+        walking_count = 3
         GOSUB MotionTurnLeftBig
     ELSE
-        walking_count = 4
+        walking_count = 3
         GOSUB MotionWalkingLeft
-        walking_count = 2
+        walking_count = 3
         GOSUB MotionTurnRightBig
     ENDIF
 
     head_angle = 100
     GOSUB PostureHeadTurn
 
-    head_angle = 30
+    head_angle = 27
     GOSUB PostureHeadDown
 
 StateLineTracingToSafe:
@@ -1489,7 +1582,6 @@ StateLineTracingToSafe:
 
     IF rx_data = cMOTION_LINE_STOP OR rx_data = cMOTION_LINE_LOST THEN
         IF rx_data = cMOTION_LINE_LOST AND temp = 0 THEN
-            temp = 1
             walking_count = 1
             IF direction_turn = 1 THEN
                 GOSUB MotionTurnLeftBig
@@ -1497,25 +1589,34 @@ StateLineTracingToSafe:
                 GOSUB MotionTurnRightBig
             ENDIF
         ELSE
-                    IF direction_turn = 1 THEN
-                            walking_count = 4
-                            GOSUB MotionWalkingFront
-                            walking_count = 1
-                            GOSUB MotionTurnLeftBig
-                    ELSE
-                            walking_count = 4
-                            GOSUB MotionWalkingFront
-                            walking_count = 1
-                            GOSUB MotionTurnRightBig
-                    ENDIF
+            walking_count = 10
+            GOSUB MotionWalkingFront
 
-                    GOTO StateReturnToLineFromSectionInit
+            walking_count = 2
+            IF direction_turn = 1 THEN
+                GOSUB MotionTurnLeftBig
+            ELSE
+                GOSUB MotionTurnRightBig
             ENDIF
+            walking_count = 13
+            GOSUB MotionWalkingFront
+
+            walking_count = 1
+            IF direction_turn = 1 THEN
+                GOSUB MotionTurnLeftBig
+            ELSE
+                GOSUB MotionTurnRightBig
+            ENDIF
+            walking_count = 7
+            GOSUB MotionWalkingFront
+
+            GOTO StateLineTracingToCornerInit
+        ENDIF
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
-        walking_count = 2
+        walking_count = 5
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT_SMALL THEN
-        walking_count = 1
+        walking_count = 3
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
         walking_count = 1
@@ -1531,6 +1632,7 @@ StateLineTracingToSafe:
         GOSUB MotionTurnRight
     ENDIF
 
+    temp = 1
     GOTO StateLineTracingToSafe
 
 StateDangerSectionFindMilkInit:
@@ -1545,20 +1647,27 @@ StateDangerSectionFindMilkInit:
     head_angle = 65
     GOSUB PostureHeadDown
 
-    head_angle = 85
+    head_angle = 100
     GOSUB PostureHeadTurn
+
+    temp = 0
 
 StateDangerSectionFindMilk:
     ETX 4800, cSIGNAL_IMAGE
     GOSUB UartRx
 
     IF rx_data = cMOTION_MILK_NOT_FOUND THEN
-        IF head_angle = 85 THEN
-            head_angle = 115
-            GOSUB PostureHeadTurn
+        IF temp = 0 THEN
+            temp = 1
+            walking_count = 1
+            IF clockwise = 1 THEN
+                GOSUB MotionTurnLeftBig
+            ELSE
+                GOSUB MotionTurnRightBig
+            ENDIF
             GOTO StateDangerSectionFindMilk
         ELSE
-            walking_count = 3
+            walking_count = 5
             IF clockwise = 1 THEN
                 GOSUB MotionTurnRightBig
             ELSE
@@ -1572,21 +1681,12 @@ StateDangerSectionFindMilk:
 
 StateDangerSectionCatchMilkInit:
     ETX 4800, cSIGNAL_STATE
-    walking_count = 2
-    IF head_angle = 85 THEN
-        GOSUB MotionWalkingLeft
-    ELSE
-        GOSUB MotionWalkingRight
-    ENDIF
 
     head_angle = 100
     GOSUB PostureHeadTurn
 
     head_angle = 65
     GOSUB PostureHeadDown
-
-    section_front_walking_count = 0
-    section_side_walking_count = &H8000
 
 StateDangerSectionCatchMilk:
     ETX 4800, cSIGNAL_IMAGE
@@ -1596,23 +1696,21 @@ StateDangerSectionCatchMilk:
         IF head_angle = 65 THEN
             head_angle = 30
             GOSUB PostureHeadDown
-            walking_count = 2
+            walking_count = 7
             GOSUB MotionWalkingFront
         ELSE
             GOTO StateDangerSectionPutMilkInit
         ENDIF
     ELSEIF rx_data = cMOTION_MILK_MOVE_FRONT THEN
         IF head_angle = 65 THEN
-            walking_count = 2
+            walking_count = 5
         ELSE
-            walking_count = 1
+            walking_count = 3
         ENDIF
-        section_front_walking_count = section_front_walking_count + walking_count
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_MILK_MOVE_LEFT THEN
         walking_count = 1
         IF head_angle = 65 THEN
-            section_side_walking_count = section_side_walking_count - walking_count
             GOSUB MotionTurnLeft
         ELSE
             GOSUB MotionWalkingLeft
@@ -1620,7 +1718,6 @@ StateDangerSectionCatchMilk:
     ELSEIF rx_data = cMOTION_MILK_MOVE_RIGHT THEN
         walking_count = 1
         IF head_angle = 65 THEN
-            section_side_walking_count = section_side_walking_count + walking_count
             GOSUB MotionTurnRight
         ELSE
             GOSUB MotionWalkingRight
@@ -1631,66 +1728,56 @@ StateDangerSectionCatchMilk:
 
 StateDangerSectionPutMilkInit:
     ETX 4800, cSIGNAL_STATE
-    walking_count = 1
-    GOSUB MotionWalkingFront
+
+    walking_count = 2
+    GOSUB MotionWalkingFrontSlow
     GOSUB MotionCatchMilk
 
     head_angle = 100
     GOSUB PostureHeadTurn
-    head_angle = 30
+    head_angle = 27
     GOSUB PostureHeadDown
 
-    IF section_front_walking_count < 10 THEN
-        walking_count = 10 - section_front_walking_count
-        GOSUB MotionWalkingFrontWithMilk
-    ENDIF
-
-    IF section_side_walking_count > &H8000 THEN
-        walking_count = section_side_walking_count - &H8000
-        GOSUB MotionWalkingLeftWithMilk
-    ELSEIF section_side_walking_count < &H8000 THEN
-        walking_count = &H8000 - section_side_walking_count
-        GOSUB MotionWalkingRightWithMilk
-    ENDIF
-
-    walking_count = 4
+    walking_count = 2
     IF clockwise = 1 THEN
-        GOSUB MotionTurnLeftWithMilk
+        GOSUB MotionTurnLeftBigWithMilk
     ELSE
-        GOSUB MotionTurnRightWithMilk
+        GOSUB MotionTurnRightBigWithMilk
     ENDIF
     GOSUB PostureMilkHigh
+
+    temp = 0
 
 StateDangerSectionPutMilk:
     ETX 4800, cSIGNAL_IMAGE
     GOSUB UartRx
 
-    IF rx_data = cMOTION_LINE_STOP THEN
-        walking_count = 1
-        GOSUB MotionWalkingFrontWithMilk
-        walking_count = 5
-        IF clockwise = 1 THEN
-            GOSUB MotionTurnLeftWithMilk
+    IF rx_data = cMOTION_LINE_STOP OR rx_data = cMOTION_LINE_LOST THEN
+        IF rx_data = cMOTION_LINE_LOST AND temp = 0 THEN
+            walking_count = 2
+            IF clockwise = 1 THEN
+                GOSUB MotionWalkingLeftWithMilk
+            ELSE
+                GOSUB MotionWalkingRightWithMilk
+            ENDIF
         ELSE
-            GOSUB MotionTurnRightWithMilk
-        ENDIF
-        walking_count = 3
-        GOSUB MotionWalkingFrontWithMilk
-        GOSUB MotionPutMilk
+            walking_count = 3
+            IF clockwise = 1 THEN
+                GOSUB MotionTurnLeftBigWithMilk
+            ELSE
+                GOSUB MotionTurnRightBigWithMilk
+            ENDIF
+            walking_count = 3
+            GOSUB MotionWalkingFrontWithMilk
+            GOSUB MotionPutMilk
 
-        GOTO StateLineTracingToDangerInit
-    ELSEIF rx_data = cMOTION_LINE_LOST THEN
-        walking_count = 2
-        IF clockwise = 1 THEN
-            GOSUB MotionWalkingLeftWithMilk
-        ELSE
-            GOSUB MotionWalkingRightWithMilk
+            GOTO StateLineTracingToDangerInit
         ENDIF
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
-        walking_count = 3
+        walking_count = 2
         GOSUB MotionWalkingFrontWithMilk
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT_SMALL THEN
-        walking_count = 2
+        walking_count = 1
         GOSUB MotionWalkingFrontWithMilk
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
         walking_count = 1
@@ -1706,28 +1793,32 @@ StateDangerSectionPutMilk:
         GOSUB MotionTurnRightWithMilk
     ENDIF
 
+    IF rx_data <> cMOTION_LINE_LOST THEN
+        temp = 1
+    ENDIF
+
     GOTO StateDangerSectionPutMilk
 
 StateLineTracingToDangerInit:
     ETX 4800, cSIGNAL_STATE
     temp = 0
-    
+
     IF clockwise = 1 THEN
-        walking_count = 4
+        walking_count = 3
         GOSUB MotionWalkingRight
-        walking_count = 2
+        walking_count = 3
         GOSUB MotionTurnLeftBig
     ELSE
-        walking_count = 4
+        walking_count = 3
         GOSUB MotionWalkingLeft
-        walking_count = 2
+        walking_count = 3
         GOSUB MotionTurnRightBig
     ENDIF
 
     head_angle = 100
     GOSUB PostureHeadTurn
 
-    head_angle = 30
+    head_angle = 27
     GOSUB PostureHeadDown
 
 StateLineTracingToDanger:
@@ -1735,36 +1826,51 @@ StateLineTracingToDanger:
     GOSUB UartRx
 
     IF rx_data = cMOTION_LINE_STOP OR rx_data = cMOTION_LINE_LOST THEN
-    	IF rx_data = cMOTION_LINE_LOST AND temp = 0 THEN
-    		temp = 1
-    		walking_count = 1
-    		IF clockwise = 1 THEN
-        		GOSUB MotionTurnLeftBig
-    		ELSE
-        		GOSUB MotionTurnRightBig
-    		ENDIF
-    	ELSE
-	        walking_count = 4
-	        GOSUB MotionWalkingFront
-	        walking_count = 1
-	        IF clockwise = 1 THEN
-	            GOSUB MotionTurnRightBig
-	        ELSE
-	            GOSUB MotionTurnLeftBig
-	        ENDIF
-	        GOTO StateReturnToLineFromSectionInit
-	    ENDIF
+        IF rx_data = cMOTION_LINE_LOST AND temp = 0 THEN
+            temp = 1
+            walking_count = 1
+            IF clockwise = 1 THEN
+                GOSUB MotionTurnLeftBig
+            ELSE
+                GOSUB MotionTurnRightBig
+            ENDIF
+        ELSE
+            walking_count = 10
+            GOSUB MotionWalkingFront
+
+            walking_count = 1
+            IF clockwise = 1 THEN
+                GOSUB MotionTurnRightBig
+            ELSE
+                GOSUB MotionTurnLeftBig
+            ENDIF
+
+            walking_count = 13
+            GOSUB MotionWalkingFront
+
+            walking_count = 1
+            IF clockwise = 1 THEN
+                GOSUB MotionTurnLeftBig
+            ELSE
+                GOSUB MotionTurnRightBig
+            ENDIF
+
+            walking_count = 7
+            GOSUB MotionWalkingFront
+
+            GOTO StateLineTracingToCornerInit
+        ENDIF
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
-        walking_count = 2
+        walking_count = 5
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT_SMALL THEN
-        walking_count = 1
+        walking_count = 3
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
-        walking_count = 2
+        walking_count = 1
         GOSUB MotionWalkingLeft
     ELSEIF rx_data = cMOTION_LINE_MOVE_RIGHT THEN
-        walking_count = 2
+        walking_count = 1
         GOSUB MotionWalkingRight
     ELSEIF rx_data = cMOTION_LINE_TURN_LEFT_SMALL THEN
         walking_count = 1
@@ -1776,51 +1882,6 @@ StateLineTracingToDanger:
 
     GOTO StateLineTracingToDanger
 
-StateReturnToLineFromSectionInit:
-    ETX 4800, cSIGNAL_STATE
-
-    head_angle = 100
-    GOSUB PostureHeadTurn
-
-    head_angle = 30
-    GOSUB PostureHeadDown
-
-    walking_count = 2
-    GOSUB MotionWalkingFront
-
-StateReturnToLineFromSection:
-    ETX 4800, cSIGNAL_IMAGE
-    GOSUB UartRx
-
-    IF rx_data = cMOTION_LINE_STOP THEN
-        walking_count = 4
-        GOSUB MotionWalkingFront
-        walking_count = 1
-        IF clockwise = 1 THEN
-            GOSUB MotionTurnLeftBig
-        ELSE
-            GOSUB MotionTurnRightBig
-        ENDIF
-        GOTO StateLineTracingToCornerInit
-    ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
-        walking_count = 2
-        GOSUB MotionWalkingFront
-    ELSEIF rx_data = cMOTION_LINE_TURN_LEFT_SMALL THEN
-        walking_count = 1
-        GOSUB MotionTurnLeft
-    ELSEIF rx_data = cMOTION_LINE_TURN_RIGHT_SMALL THEN
-        walking_count = 1
-        GOSUB MotionTurnRight
-    ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
-        walking_count = 2
-        GOSUB MotionWalkingLeft
-    ELSEIF rx_data = cMOTION_LINE_MOVE_RIGHT THEN
-        walking_count = 2
-        GOSUB MotionWalkingRight
-    ENDIF
-
-    GOTO StateReturnToLineFromSection
-
 StateLineTracingToCrossInit:
     ETX 4800, cSIGNAL_STATE
 
@@ -1830,7 +1891,7 @@ StateLineTracingToCrossInit:
     head_angle = 30
     GOSUB PostureHeadDown
 
-    walking_count = 2
+    walking_count = 5
     GOSUB MotionWalkingFront
 
 StateLineTracingToCross:
@@ -1840,10 +1901,10 @@ StateLineTracingToCross:
     IF rx_data = cMOTION_LINE_STOP THEN
         GOTO StateLineTracingToGoalInit
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
-        walking_count = 2
+        walking_count = 5
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT_SMALL THEN
-        walking_count = 1
+        walking_count = 3
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
         walking_count = 2
@@ -1864,16 +1925,17 @@ StateLineTracingToCross:
 StateLineTracingToGoalInit:
     ETX 4800, cSIGNAL_STATE
 
-    walking_count = 3
+    walking_count = 9
     GOSUB MotionWalkingFront
 
-    walking_count = 2
+    walking_count = 3
     IF clockwise = 1 THEN
         GOSUB MotionTurnLeftBig
     ELSE
         GOSUB MotionTurnRightBig
     ENDIF
 
+    walking_count = 4
     GOSUB MotionWalkingFront
     GOSUB PostureDoor
 
@@ -1934,11 +1996,19 @@ StateSpeakSectionName:
 
 
     '********** Main Begin **********'
+WaitRemotecontrol:
+    ERX 4800, rx_data, WaitRemotecontrol
+    ON rx_data GOTO WaitRemotecontrol, Main, PiStop
+
 Main:
-    GOSUB Initiate
+    MUSIC "CDE"
     GOSUB UartConnectWait
     GOTO StateDirectionRecognition
     '********** Main End **********'
+PiStop:
+    DELAY 100
+    ETX 4800, cSIGNAL_STOP
+    GOTO PiStop
 
 ErrorOccurred:
     GOSUB SoundError

@@ -98,7 +98,7 @@ class ArrowRecognition(RobotStateBase):
 class LineTracingToCorner(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
-        self.line_tracing = line_tracing.LineTracing()
+        self.line_tracing = line_tracing.LineTracing(height_size=const.HEIGHT_SIZE - 40)
         self.mission_count = 0
 
     def __str__(self):
@@ -108,7 +108,7 @@ class LineTracingToCorner(RobotStateBase):
         return self.line_tracing.select_corner_motion(
             self.line_tracing.detect_line(
                 self.line_tracing.skeletonization(
-                    self.line_tracing.detect_yellow_line(source_image))))
+                    self.line_tracing.detect_yellow_line(source_image[20:-20]))))
 
     def state_change(self):
         self.mission_count += 1
@@ -270,8 +270,8 @@ class DangerSectionCatch(RobotStateBase):
 class SafeSectionPut(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
-        self.line_tracing = line_tracing.LineTracing(height_size=const.HEIGHT_SIZE - 40,
-                                                     width_size=const.WIDTH_SIZE - 20)
+        self.line_tracing = line_tracing.LineTracing(height_size=const.HEIGHT_SIZE - 60,
+                                                     width_size=const.WIDTH_SIZE - 40)
 
     def __str__(self):
         return "put the milk carton inside Safe Section"
@@ -280,7 +280,7 @@ class SafeSectionPut(RobotStateBase):
         return self.line_tracing.select_section_motion(
             self.line_tracing.detect_line(
                 self.line_tracing.skeletonization(
-                    self.line_tracing.detect_outline(source_image[:-40, 10:-10], "SAFE"))))
+                    self.line_tracing.detect_outline(source_image[20:-40, 20:-20]))))
 
     def state_change(self):
         self.next_state.init()
@@ -294,7 +294,7 @@ class DangerSectionPut(RobotStateBase):
     def __init__(self, next_state):
         super().__init__(next_state)
         self.line_tracing = line_tracing.LineTracing(height_size=const.HEIGHT_SIZE - 60,
-                                                     width_size=const.WIDTH_SIZE - 20)
+                                                     width_size=const.WIDTH_SIZE - 40)
 
     def __str__(self):
         return "put the milk carton outside Danger Section"
@@ -303,7 +303,10 @@ class DangerSectionPut(RobotStateBase):
         return self.line_tracing.select_section_motion(
             self.line_tracing.detect_line(
                 self.line_tracing.skeletonization(
-                    self.line_tracing.detect_outline(source_image[10:-50, 10:-10], "DANGER"))))
+                    self.line_tracing.detect_outline(source_image[20:-40, 20:-20]))))
+
+    def set_next_state(self, next_state):
+        self.next_state = next_state
 
     def state_change(self):
         self.next_state.init()
@@ -325,7 +328,10 @@ class LineTracingToSafeCorner(RobotStateBase):
         return self.line_tracing.select_section_motion(
             self.line_tracing.detect_line(
                 self.line_tracing.skeletonization(
-                    self.line_tracing.detect_outline(source_image[20:-40], "SAFE"))))
+                    self.line_tracing.detect_outline(source_image[20:-40]))))
+
+    def set_next_state(self, next_state):
+        self.next_state = next_state
 
     def state_change(self):
         self.next_state.init()
@@ -347,29 +353,7 @@ class LineTracingToDangerCorner(RobotStateBase):
         return self.line_tracing.select_section_motion(
             self.line_tracing.detect_line(
                 self.line_tracing.skeletonization(
-                    self.line_tracing.detect_outline(source_image[20:-40], "DANGER"))))
-
-    def state_change(self):
-        self.next_state.init()
-        return self.next_state
-
-    def init(self):
-        self.line_tracing.init()
-
-
-class ReturnToLineFromSection(RobotStateBase):
-    def __init__(self, next_state):
-        super().__init__(next_state)
-        self.line_tracing = line_tracing.LineTracing()
-
-    def __str__(self):
-        return "return to Line from Section"
-
-    def operation(self, source_image):
-        return self.line_tracing.select_return_motion(
-            self.line_tracing.detect_line(
-                self.line_tracing.skeletonization(
-                    self.line_tracing.detect_yellow_line(source_image))))
+                    self.line_tracing.detect_outline(source_image[20:-40]))))
 
     def set_next_state(self, next_state):
         self.next_state = next_state
@@ -455,9 +439,8 @@ class RobotStateController:
         self.speak_section_name = SpeakSectionName(None, self)
         self.line_tracing_to_goal = LineTracingToGoal(self.speak_section_name)
         self.line_tracing_to_cross = LineTracingToCross(self.line_tracing_to_goal)
-        self.return_to_line_from_section = ReturnToLineFromSection(None)
-        self.line_tracing_to_danger_corner = LineTracingToDangerCorner(self.return_to_line_from_section)
-        self.line_tracing_to_safe_corner = LineTracingToSafeCorner(self.return_to_line_from_section)
+        self.line_tracing_to_danger_corner = LineTracingToDangerCorner(None)
+        self.line_tracing_to_safe_corner = LineTracingToSafeCorner(None)
         self.danger_section_put = DangerSectionPut(self.line_tracing_to_danger_corner)
         self.safe_section_put = SafeSectionPut(self.line_tracing_to_safe_corner)
         self.danger_section_catch = DangerSectionCatch(self.danger_section_put)
@@ -469,7 +452,8 @@ class RobotStateController:
         self.arrow_recognition = ArrowRecognition(self.line_tracing_to_corner)
         self.line_tracing_to_arrow = LineTracingToArrow(self.arrow_recognition)
 
-        self.return_to_line_from_section.set_next_state(self.line_tracing_to_corner)
+        self.line_tracing_to_danger_corner.set_next_state(self.line_tracing_to_corner)
+        self.line_tracing_to_safe_corner.set_next_state(self.line_tracing_to_corner)
         self.danger_section_find.set_next_state([self.line_tracing_to_corner, self.danger_section_catch])
         self.safe_section_find.set_next_state([self.line_tracing_to_corner, self.safe_section_catch])
 

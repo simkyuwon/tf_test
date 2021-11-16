@@ -75,7 +75,7 @@ class LineTracing:
     def select_line_motion(self, line_list):
         ret_value = const.MOTION_LINE_MOVE_FRONT
         line_index = self.find_main_line_index(line_list)
-        if line_index is None:  # 라인 미검출
+        if line_index is None:
             if self.prev_motion == const.MOTION_LINE_MOVE_RIGHT:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
             elif self.prev_motion == const.MOTION_LINE_MOVE_LEFT:
@@ -122,9 +122,9 @@ class LineTracing:
         elif (corner_point is not None) and (self.corner_check > 1):
             ret_value = const.MOTION_LINE_STOP
             x, y = corner_point
-            if x < self.img_width * 0.3:
+            if x < self.img_width * 0.4:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
-            elif x > self.img_width * 0.7:
+            elif x > self.img_width * 0.6:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
             elif y < self.img_height * 0.4:
                 ret_value = const.MOTION_LINE_MOVE_FRONT_SMALL
@@ -163,7 +163,7 @@ class LineTracing:
                 ret_value = const.MOTION_LINE_MOVE_LEFT
             elif x > self.img_width * 0.65:
                 ret_value = const.MOTION_LINE_MOVE_RIGHT
-            elif y < self.img_height * 0.5:
+            elif y < self.img_height * 0.4:
                 ret_value = const.MOTION_LINE_MOVE_FRONT_SMALL
 
         return ret_value
@@ -193,7 +193,7 @@ class LineTracing:
                 ret_value = const.MOTION_LINE_TURN_RIGHT_SMALL
             elif 0 <= center_angle <= np.pi * 75 / 180:
                 ret_value = const.MOTION_LINE_TURN_LEFT_SMALL
-            elif corner_point[1] < self.img_height * 0.5:
+            elif corner_point is None or corner_point[1] < self.img_height * 0.5:
                 ret_value = const.MOTION_LINE_MOVE_FRONT
         return ret_value
 
@@ -233,7 +233,7 @@ class LineTracing:
         return ret_list
 
     def skeletonization(self, binary_image):
-        threshold_image = cv2.erode(binary_image, self.CROSS_KERNEL, iterations=3)
+        threshold_image = cv2.erode(binary_image, self.CROSS_KERNEL)
         skeleton_image = np.zeros(threshold_image.shape, np.uint8)
 
         while True:
@@ -248,29 +248,27 @@ class LineTracing:
 
     def detect_yellow_line(self, source_image):
         hsv_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2HSV)
-        safe_section_image = cv2.inRange(hsv_image, const.GREEN_RANGE[0], const.GREEN_RANGE[1])
         threshold_value, threshold_image = cv2.threshold(cv2.split(hsv_image)[1],
                                                          0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        threshold_image = cv2.bitwise_and(threshold_image, cv2.bitwise_not(safe_section_image))
         if threshold_value < 10:
             return np.zeros(threshold_image.shape, dtype=np.uint8)
         return threshold_image
 
-    def detect_outline(self, source_image, section_type):
+    def detect_outline(self, source_image):
         hsv_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2HSV)
-        if section_type == "SAFE":
-            section_image = cv2.inRange(hsv_image, const.GREEN_RANGE[0], const.GREEN_RANGE[1])
-        else:
-            red_image = cv2.bitwise_or(cv2.inRange(hsv_image, const.RED_RANGE1[0], const.RED_RANGE1[1]),
-                                       cv2.inRange(hsv_image, const.RED_RANGE2[0], const.RED_RANGE2[1]))
-            blue_image = cv2.inRange(hsv_image, const.BLUE_RANGE[0], const.BLUE_RANGE[1])
-            milk_image = cv2.dilate(cv2.bitwise_or(red_image, blue_image), self.CROSS_KERNEL)
-            gray_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2GRAY)
-            section_image = cv2.threshold(gray_image, 100, 255, cv2.THRESH_BINARY_INV)[1]
-            section_image = cv2.bitwise_and(section_image, cv2.bitwise_not(milk_image))
-        section_image = cv2.morphologyEx(section_image, cv2.MORPH_DILATE, self.CROSS_KERNEL, iterations=5)
-        ground_image = cv2.morphologyEx(cv2.inRange(hsv_image, const.WHITE_RANGE[0], const.WHITE_RANGE[1]),
-                                        cv2.MORPH_GRADIENT, self.CROSS_KERNEL, iterations=5)
+        red_image = cv2.bitwise_or(cv2.inRange(hsv_image, const.RED_RANGE1[0], const.RED_RANGE1[1]),
+                                   cv2.inRange(hsv_image, const.RED_RANGE2[0], const.RED_RANGE2[1]))
+        blue_image = cv2.inRange(hsv_image, const.BLUE_RANGE[0], const.BLUE_RANGE[1])
+        milk_image = cv2.bitwise_not(cv2.dilate(cv2.bitwise_or(red_image, blue_image), self.CROSS_KERNEL, iterations=5))
+        gray_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2GRAY)
+        threshold_value, section_image = cv2.threshold(gray_image, 0, 255, cv2.THRESH_OTSU + cv2.THRESH_BINARY_INV)
+        if threshold_value < 60:
+            return np.zeros(section_image.shape, np.uint8)
+        section_image = cv2.morphologyEx(cv2.bitwise_and(section_image, milk_image),
+                                         cv2.MORPH_GRADIENT, self.CROSS_KERNEL, iterations=3)
+        ground_image = cv2.threshold(gray_image, 0, 255, cv2.THRESH_OTSU + cv2.THRESH_BINARY)[1]
+        ground_image = cv2.morphologyEx(cv2.bitwise_and(ground_image, milk_image),
+                                        cv2.MORPH_GRADIENT, self.CROSS_KERNEL, iterations=3)
         return cv2.morphologyEx(cv2.bitwise_and(section_image, ground_image), cv2.MORPH_CLOSE, self.CROSS_KERNEL)
 
     def detect_line(self, binary_image):
