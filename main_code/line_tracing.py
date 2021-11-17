@@ -248,8 +248,10 @@ class LineTracing:
 
     def detect_yellow_line(self, source_image):
         hsv_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2HSV)
+        safe_section_image = cv2.inRange(hsv_image, const.GREEN_RANGE[0], const.GREEN_RANGE[1])
         threshold_value, threshold_image = cv2.threshold(cv2.split(hsv_image)[1],
                                                          0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        threshold_image = cv2.bitwise_and(threshold_image, cv2.bitwise_not(safe_section_image))
         if threshold_value < 10:
             return np.zeros(threshold_image.shape, dtype=np.uint8)
         return threshold_image
@@ -262,7 +264,7 @@ class LineTracing:
         milk_image = cv2.bitwise_not(cv2.dilate(cv2.bitwise_or(red_image, blue_image), self.CROSS_KERNEL, iterations=5))
         gray_image = cv2.cvtColor(source_image, cv2.COLOR_BGR2GRAY)
         threshold_value, section_image = cv2.threshold(gray_image, 0, 255, cv2.THRESH_OTSU + cv2.THRESH_BINARY_INV)
-        if threshold_value < 60:
+        if threshold_value < 50:
             return np.zeros(section_image.shape, np.uint8)
         section_image = cv2.morphologyEx(cv2.bitwise_and(section_image, milk_image),
                                          cv2.MORPH_GRADIENT, self.CROSS_KERNEL, iterations=3)

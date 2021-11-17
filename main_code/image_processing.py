@@ -112,7 +112,7 @@ class LineTracingToCorner(RobotStateBase):
 
     def state_change(self):
         self.mission_count += 1
-        next_state = self.next_state[0 if self.mission_count <= 3 else 1]
+        next_state = self.next_state[0 if self.mission_count <= 2 else 1]
         next_state.init()
         return next_state
 

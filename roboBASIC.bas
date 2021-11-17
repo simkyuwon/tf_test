@@ -60,7 +60,7 @@ DIM section_type AS BYTE
 DIM mission_count AS BYTE
 DIM section_turn AS BYTE
 DIM section_front_walking_count AS INTEGER
-DIM section_side_walking_count AS INTEGER
+DIM door_open AS BYTE
 
 
 GOSUB Initiate
@@ -184,6 +184,14 @@ PostureDoor:
     MOVE G6D, 100,  76, 145,  94, 100, 100
     MOVE G6B, 190,  10,  55,  ,  ,
     MOVE G6C, 190,  10,  55,  ,  ,
+    WAIT
+    RETURN
+
+PostureDoorWide:
+    MOVE G6A, 100,  76, 145,  94, 100, 100
+    MOVE G6D, 100,  76, 145,  94, 100, 100
+    MOVE G6B, 190,  10, 100,  ,  ,
+    MOVE G6C, 190,  10, 100,  ,  ,
     WAIT
     RETURN
 
@@ -653,8 +661,6 @@ MotionWalkingFrontDoor:
     SPEED 10
     MOVE G6A,  95,  76, 147,  88, 101
     MOVE G6D, 101,  76, 147,  88,  98
-    MOVE G6B, 190,  10,  55,  ,  ,
-    MOVE G6C, 190,  10,  55,  ,  ,
     WAIT
 
     FOR i = 1 TO walking_count
@@ -680,8 +686,12 @@ MotionWalkingFrontDoor:
     MOVE G6D, 102,  76, 145,  91, 102
     WAIT
 
-    SPEED 15
-    GOSUB PostureDoor
+    SPEED 10
+    IF door_open = 0 THEN
+        GOSUB PostureDoor
+    ELSE
+        GOSUB PostureDoorWide
+    ENDIF
     RETURN
 
 MotionWalkingRightDoor:
@@ -703,7 +713,11 @@ MotionWalkingRightDoor:
         WAIT
 
         SPEED 8
-        GOSUB PostureDoor
+        IF door_open = 0 THEN
+            GOSUB PostureDoor
+        ELSE
+            GOSUB PostureDoorWide
+        ENDIF
     NEXT i
     GOSUB MotorAllMode3
     RETURN
@@ -728,7 +742,11 @@ MotionWalkingLeftDoor:
         WAIT
 
         SPEED 8
-        GOSUB PostureDoor
+        IF door_open = 0 THEN
+            GOSUB PostureDoor
+        ELSE
+            GOSUB PostureDoorWide
+        ENDIF
     NEXT i
     GOSUB MotorAllMode3
     RETURN
@@ -757,7 +775,12 @@ MotionTurnRightDoor:
         MOVE G6A, 101,  76, 146,  93,  98, 100
         WAIT
     NEXT i
-    GOSUB PostureDoor
+    SPEED 10
+    IF door_open = 0 THEN
+        GOSUB PostureDoor
+    ELSE
+        GOSUB PostureDoorWide
+    ENDIF
     RETURN
 
 MotionTurnLeftDoor:
@@ -784,49 +807,12 @@ MotionTurnLeftDoor:
         MOVE G6A, 101,  76, 146,  93,  98, 100
         WAIT
     NEXT i
-    GOSUB PostureDoor
-    RETURN
-
-MotionWalkingFrontDoorOpen:
-    GOSUB MotorAllMode3
-
     SPEED 10
-    MOVE G6A,  95,  76, 147,  88, 101
-    MOVE G6D, 101,  76, 147,  88,  98
-    MOVE G6B, 190,  70,  50,  ,  ,
-    MOVE G6C, 190,  70,  50,  ,  ,
-    WAIT
-
-    FOR i = 1 TO walking_count
-        MOVE G6A,  90,  90, 125,  95, 109,
-        MOVE G6D, 104,  77, 147,  88,  97,
-        WAIT
-
-        MOVE G6A, 103,  73, 140,  98, 100
-        MOVE G6D,  95,  85, 147,  80, 102
-        WAIT
-
-        MOVE G6D,  90,  90, 125,  95, 109,
-        MOVE G6A, 104,  77, 147,  88,  97,
-        WAIT
-
-        MOVE G6D, 103,  73, 140,  98, 100
-        MOVE G6A,  95,  85, 147,  80, 102
-        WAIT
-
-    NEXT i
-
-    MOVE G6A,  85,  90, 125,  95, 104
-    MOVE G6D, 102,  76, 145,  91, 102
-    WAIT
-
-    SPEED 15
-
-    MOVE G6A, 100,  76, 145,  93, 100, 100
-    MOVE G6D, 100,  76, 145,  93, 100, 100
-    MOVE G6B, 190,  70,  50,  ,  ,
-    MOVE G6C, 190,  70,  50,  ,  ,
-
+    IF door_open = 0 THEN
+        GOSUB PostureDoor
+    ELSE
+        GOSUB PostureDoorWide
+    ENDIF
     RETURN
 
 MotionCatchMilk:
@@ -845,7 +831,7 @@ MotionCatchMilk:
     SPEED    6
     MOVE G6B, 165,  60, 80
     MOVE G6C, 165,  60, 80
-    WAIT   
+    WAIT
 
     SPEED 3
     MOVE G6A,  70, 155,  26, 155, 125,
@@ -870,8 +856,8 @@ MotionCatchMilk:
     MOVE G6C, 160,  20, 100
     WAIT
 
-    MOVE G6B, 160,  15,  55,  ,  ,
-    MOVE G6C, 160,  15,  55,  ,  ,
+    MOVE G6B, 157,  15,  55,  ,  ,
+    MOVE G6C, 157,  15,  55,  ,  ,
     WAIT
 
     SPEED 3
@@ -1173,7 +1159,7 @@ StateDirectionRecognition:
     GOSUB PostureHeadDown
 
     FOR i = 0 TO 3
-        head_angle = i * 12 + 82
+        head_angle = i * 10 + 85
         GOSUB PostureHeadTurn
         ETX 4800, cSIGNAL_IMAGE
         GOSUB UartRx
@@ -1186,20 +1172,28 @@ StateDirectionRecognition:
         MOVE G6C, 190,  10, 100
         DELAY 200
         PRINT "SND 0 !"
+        DELAY 1000
+        PRINT "SND 0 !"
     ELSEIF rx_data = cMOTION_DIRECTION_WEST THEN
         MOVE G6B, 190,  10, 100
         MOVE G6C, 100,  30,  80
         DELAY 200
+        PRINT "SND 1 !"
+        DELAY 1000
         PRINT "SND 1 !"
     ELSEIF rx_data = cMOTION_DIRECTION_SOUTH THEN
         MOVE G6B,  10,  10, 100
         MOVE G6C,  10,  10, 100
         DELAY 200
         PRINT "SND 2 !"
+        DELAY 1000
+        PRINT "SND 2 !"
     ELSEIF rx_data = cMOTION_DIRECTION_NORTH THEN
         MOVE G6B, 190,  10, 100
         MOVE G6C, 190,  10, 100
         DELAY 200
+        PRINT "SND 3 !"
+        DELAY 1000
         PRINT "SND 3 !"
     ENDIF
     GOSUB PostureDefault
@@ -1227,6 +1221,8 @@ StateLineTracingToArrowInit:
     GOSUB PostureHeadDown
 
     temp = 0
+    section_front_walking_count = 0
+    door_open = 0
 
 StateLineTracingToArrow:
     ETX 4800, cSIGNAL_IMAGE
@@ -1234,18 +1230,20 @@ StateLineTracingToArrow:
 
     IF rx_data = cMOTION_LINE_STOP THEN
         walking_count = 3
+        section_front_walking_count = section_front_walking_count + walking_count
+        GOSUB MotionWalkingFrontDoor
         IF temp = 1 THEN
-        	GOSUB MotionWalkingFrontDoorOpen
             GOTO StateArrowRecognitionInit
         ELSE
-        	GOSUB MotionWalkingFrontDoor
             temp = 1
         ENDIF
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
         walking_count = 2
+        section_front_walking_count = section_front_walking_count + walking_count
         GOSUB MotionWalkingFrontDoor
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT_SMALL THEN
         walking_count = 1
+        section_front_walking_count = section_front_walking_count + walking_count
         GOSUB MotionWalkingFrontDoor
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
         walking_count = 2
@@ -1259,6 +1257,10 @@ StateLineTracingToArrow:
     ELSEIF rx_data = cMOTION_LINE_TURN_RIGHT_SMALL THEN
         walking_count = 1
         GOSUB MotionTurnRightDoor
+    ENDIF
+
+    IF section_front_walking_count > 8 THEN
+        door_open = 1
     ENDIF
 
     GOTO StateLineTracingToArrow
@@ -1310,7 +1312,7 @@ StateLineTracingToCornerInit:
     head_angle = 27
     GOSUB PostureHeadDown
 
-    IF mission_count >= 4 THEN
+    IF mission_count >= 3 THEN
         GOTO StateLineTracingToCrossInit
     ENDIF
 
@@ -1328,10 +1330,10 @@ StateLineTracingToCorner:
         GOSUB MotionWalkingFront
         GOTO StateSectionRecognitionInit
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
-        walking_count = 6
+        walking_count = 8
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT_SMALL THEN
-        walking_count = 3
+        walking_count = 4
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
         walking_count = 2
@@ -1502,8 +1504,8 @@ StateSafeSectionPutMilkInit:
     head_angle = 27
     GOSUB PostureHeadDown
 
-    IF section_front_walking_count < 20 THEN
-        walking_count = 20 - section_front_walking_count
+    IF section_front_walking_count < 10 THEN
+        walking_count = 10 - section_front_walking_count
         GOSUB MotionWalkingFrontWithMilk
     ENDIF
 
@@ -1589,10 +1591,15 @@ StateLineTracingToSafe:
                 GOSUB MotionTurnRightBig
             ENDIF
         ELSE
-            walking_count = 10
+            walking_count = 15
             GOSUB MotionWalkingFront
 
-            walking_count = 2
+            IF section_turn = 1 THEN
+                walking_count = 1
+            ELSE
+                walking_count = 2
+            ENDIF
+
             IF direction_turn = 1 THEN
                 GOSUB MotionTurnLeftBig
             ELSE
@@ -1602,12 +1609,12 @@ StateLineTracingToSafe:
             GOSUB MotionWalkingFront
 
             walking_count = 1
-            IF direction_turn = 1 THEN
+            IF clockwise = 1 THEN
                 GOSUB MotionTurnLeftBig
             ELSE
                 GOSUB MotionTurnRightBig
             ENDIF
-            walking_count = 7
+            walking_count = 6
             GOSUB MotionWalkingFront
 
             GOTO StateLineTracingToCornerInit
@@ -1835,27 +1842,27 @@ StateLineTracingToDanger:
                 GOSUB MotionTurnRightBig
             ENDIF
         ELSE
+            walking_count = 20
+            GOSUB MotionWalkingFront
+
+            walking_count = 1
+            IF clockwise = 1 THEN
+                GOSUB MotionTurnRightBig
+            ELSE
+                GOSUB MotionTurnLeftBig
+            ENDIF
+
             walking_count = 10
             GOSUB MotionWalkingFront
 
             walking_count = 1
             IF clockwise = 1 THEN
-                GOSUB MotionTurnRightBig
-            ELSE
-                GOSUB MotionTurnLeftBig
-            ENDIF
-
-            walking_count = 13
-            GOSUB MotionWalkingFront
-
-            walking_count = 1
-            IF clockwise = 1 THEN
                 GOSUB MotionTurnLeftBig
             ELSE
                 GOSUB MotionTurnRightBig
             ENDIF
 
-            walking_count = 7
+            walking_count = 6
             GOSUB MotionWalkingFront
 
             GOTO StateLineTracingToCornerInit
@@ -1901,10 +1908,10 @@ StateLineTracingToCross:
     IF rx_data = cMOTION_LINE_STOP THEN
         GOTO StateLineTracingToGoalInit
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
-        walking_count = 5
+        walking_count = 7
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT_SMALL THEN
-        walking_count = 3
+        walking_count = 4
         GOSUB MotionWalkingFront
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
         walking_count = 2
@@ -1925,7 +1932,7 @@ StateLineTracingToCross:
 StateLineTracingToGoalInit:
     ETX 4800, cSIGNAL_STATE
 
-    walking_count = 9
+    walking_count = 10
     GOSUB MotionWalkingFront
 
     walking_count = 3
@@ -1935,6 +1942,8 @@ StateLineTracingToGoalInit:
         GOSUB MotionTurnRightBig
     ENDIF
 
+    door_open = 0
+    section_front_walking_count = 0
     walking_count = 4
     GOSUB MotionWalkingFront
     GOSUB PostureDoor
@@ -1947,9 +1956,11 @@ StateLineTracingToGoal:
         GOTO StateSpeakSectionNameInit
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT THEN
         walking_count = 2
+        section_front_walking_count = section_front_walking_count + walking_count
         GOSUB MotionWalkingFrontDoor
     ELSEIF rx_data = cMOTION_LINE_MOVE_FRONT_SMALL THEN
         walking_count = 1
+        section_front_walking_count = section_front_walking_count + walking_count
         GOSUB MotionWalkingFrontDoor
     ELSEIF rx_data = cMOTION_LINE_MOVE_LEFT THEN
         walking_count = 1
@@ -1963,6 +1974,10 @@ StateLineTracingToGoal:
     ELSEIF rx_data = cMOTION_LINE_TURN_RIGHT_SMALL THEN
         walking_count = 1
         GOSUB MotionTurnRightDoor
+    ENDIF
+
+    IF section_front_walking_count > 6 THEN
+        door_open = 1
     ENDIF
 
     GOTO StateLineTracingToGoal
